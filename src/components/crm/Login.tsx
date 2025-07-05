@@ -1,12 +1,13 @@
 import { useState } from "react";
 import defaultLogo from "@/assets/Wealth Empires.jpg";
+import illustration from "@/assets/4957136.jpg"
 const Login = ({ onLogin }: { onLogin: (role: string, name: string) => void }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
     try {
-      const response = await fetch("http://localhost:5000/login", {
+      const response = await fetch("https://crm-server-yd9a.onrender.com/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -38,7 +39,7 @@ const Login = ({ onLogin }: { onLogin: (role: string, name: string) => void }) =
       <div className="hidden md:flex w-1/2 bg-white items-center justify-center relative overflow-hidden">
         <div className="absolute left-0 top-0 w-2 bg-blue-600 h-full"></div>
         <img
-          src="..//..//..//public/4957136.jpg" // or any other SVG/illustration URL
+          src={illustration} // or any other SVG/illustration URL
           alt="Login Illustration"
           style={{height:"800px",width:"700px"}}
         />

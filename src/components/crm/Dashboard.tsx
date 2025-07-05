@@ -62,7 +62,7 @@ export const Dashboard = () => {
     console.log(BASE_URL);
     const fetchStats = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/dashboard_stats");
+        const res = await axios.get("https://crm-server-yd9a.onrender.com/dashboard_stats");
         const data = res.data;
 
         setStats([
@@ -101,7 +101,7 @@ export const Dashboard = () => {
     };
 
     const fetchdues = async () => {
-       const res = await axios.get("http://localhost:5000/dashboard_stats");
+       const res = await axios.get("https://crm-server-yd9a.onrender.com/dashboard_stats");
        const data = res.data;
 
     }

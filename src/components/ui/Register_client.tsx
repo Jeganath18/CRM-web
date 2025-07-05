@@ -56,7 +56,7 @@ export default function RegisterForm({ onSubmit, onClose }: RegisterFormProps) {
     if (panFile) formData.append("pan_file", panFile);
 
     try {
-      await axios.post("http://localhost:5000/create_client", formData, {
+      await axios.post("https://crm-server-yd9a.onrender.com/create_client", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       alert("✅ Client registered successfully!");

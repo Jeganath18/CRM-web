@@ -159,7 +159,7 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     });
 
     try {
-      const response = await axios.post('http://localhost:5000/add_client', formData, {
+      const response = await axios.post('https://crm-server-yd9a.onrender.com/add_client', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round(

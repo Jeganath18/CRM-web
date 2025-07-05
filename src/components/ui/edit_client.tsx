@@ -60,9 +60,9 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
   useEffect(() => {
     const fetchClient = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/client/${clientId}`);
+        const res = await axios.get(`https://crm-server-yd9a.onrender.com/client/${clientId}`);
         const history_of_client = await axios.get(
-          `http://localhost:5000/get_client_history/${clientId}`
+          `https://crm-server-yd9a.onrender.com/get_client_history/${clientId}`
         );
         
         setHistory(history_of_client.data);
@@ -72,20 +72,20 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
         setSelectedServices(fetchedClient.services || []);
 
         if (fetchedClient.gstin_file) {
-          setExistingImageUrl1(`http://localhost:5000/${fetchedClient.gstin_file}`);
+          setExistingImageUrl1(`https://crm-server-yd9a.onrender.com/${fetchedClient.gstin_file}`);
         }
         if (fetchedClient.pan_file) {
-          setExistingImageUrl2(`http://localhost:5000/${fetchedClient.pan_file}`);
+          setExistingImageUrl2(`https://crm-server-yd9a.onrender.com/${fetchedClient.pan_file}`);
         }
 
         // Fetch all client files
         if (fetchedClient.company_name) {
           const filesRes = await axios.get(
-            `http://localhost:5000/client-files/${fetchedClient.company_name}`
+            `https://crm-server-yd9a.onrender.com/client-files/${fetchedClient.company_name}`
           );
           setClientFiles(filesRes.data.map((file) => ({
             name: file.name,
-            url: `http://localhost:5000/${file.url}`,
+            url: `https://crm-server-yd9a.onrender.com/${file.url}`,
             type: file.name.split('.').pop()?.toLowerCase() || 'file'
           })));
         }
@@ -143,7 +143,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
 
     try {
       await axios.patch(
-        `http://localhost:5000/edit_client/${clientId}`,
+        `https://crm-server-yd9a.onrender.com/edit_client/${clientId}`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );

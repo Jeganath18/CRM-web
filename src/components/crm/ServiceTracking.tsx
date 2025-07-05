@@ -49,8 +49,8 @@ export const ServiceTracking = ({userName,userRole}:clientprops) => {
     const fetchServices = async () => {
       try {
         const res = userRole === "account_manager"
-  ? await axios.get(`http://localhost:5000/get_all_services/${userName}`)
-  : await axios.get("http://localhost:5000/get_all_services");
+  ? await axios.get(`https://crm-server-yd9a.onrender.com/get_all_services/${userName}`)
+  : await axios.get("https://crm-server-yd9a.onrender.com/get_all_services");
         const rows = res.data;
 
         const grouped = { incorp: [], gst: [], itr: [], mca: [], ip: [] };
@@ -277,7 +277,7 @@ export const ServiceTracking = ({userName,userRole}:clientprops) => {
           setShowViewDialog(open);
           if (!open && selectedService) {
             axios
-              .patch(`http://localhost:5000/update_service/${selectedService.id}`, {
+              .patch(`https://crm-server-yd9a.onrender.com/update_service/${selectedService.id}`, {
                 assignedTo: selectedService.assignedTo,
                 deadline: selectedService.deadline,
               })
@@ -364,7 +364,7 @@ export const ServiceTracking = ({userName,userRole}:clientprops) => {
                   else if (daysLeft < 15) priority = "medium";
 
                   await axios.patch(
-                    `http://localhost:5000/update_service/${selectedService.id}`,
+                    `https://crm-server-yd9a.onrender.com/update_service/${selectedService.id}`,
                     {
                       assignedTo: selectedService.assignedTo,
                       deadline: selectedService.deadline,
@@ -440,7 +440,7 @@ export const ServiceTracking = ({userName,userRole}:clientprops) => {
                 };
                 try {
                   await axios.patch(
-                    `http://localhost:5000/update_status/${selectedService.id}`,
+                    `https://crm-server-yd9a.onrender.com/update_status/${selectedService.id}`,
                     {
                       status: selectedService.status,
                       progress: progressMap[selectedService.status],
@@ -481,7 +481,7 @@ export const ServiceTracking = ({userName,userRole}:clientprops) => {
   className="w-full mt-2"
   onClick={async () => {
     try {
-      await axios.delete("http://localhost:5000/delete_service", {
+      await axios.delete("https://crm-server-yd9a.onrender.com/delete_service", {
         data: {
           client_id: deleteid,
           section: deletekey,

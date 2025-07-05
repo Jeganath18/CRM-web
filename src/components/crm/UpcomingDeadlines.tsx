@@ -10,7 +10,7 @@ export const UpcomingDeadlines = () => {
   useEffect(() => {
     const getDeadline = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/get_upcoming_deadlines");
+        const res = await axios.get("https://crm-server-yd9a.onrender.com/get_upcoming_deadlines");
         setDeadlines(res.data); // Set API response to state
       } catch (e) {
         console.error("Error fetching deadlines", e);

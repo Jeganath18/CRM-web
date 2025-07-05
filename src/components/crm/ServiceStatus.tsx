@@ -10,7 +10,7 @@ export const ServiceStatus = () => {
     console.log("Inside useEffect");
     const fetchservicestats = async() =>{
       try{
-        const res = await axios.get("http://localhost:5000/get_service_stats");
+        const res = await axios.get("https://crm-server-yd9a.onrender.com/get_service_stats");
         const data=res.data;
         console.log(res.data);
 

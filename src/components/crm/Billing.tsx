@@ -50,7 +50,7 @@ export const Billing = ({userName,userRole}:clientprops) => {
 useEffect(() => {
   const fetchServices = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/billing_with_clients");
+      const res = await axios.get("https://crm-server-yd9a.onrender.com/billing_with_clients");
       const data = res.data;
       console.log(data);
 
@@ -320,7 +320,7 @@ useEffect(() => {
           setShowViewDialog(open);
           if (!open && selectedService) {
             axios
-              .patch(`http://localhost:5000/update_payment/${selectedService.client_id}`, {
+              .patch(`https://crm-server-yd9a.onrender.com/update_payment/${selectedService.client_id}`, {
                 total_payment: selectedService.revenue,
                 assignedTo: selectedService.amount_paid,
                 deadline: selectedService.deadline,
@@ -418,7 +418,7 @@ useEffect(() => {
 
 
                   await axios.patch(
-                    `http://localhost:5000/update_payment/${selectedService.client_id}`,
+                    `https://crm-server-yd9a.onrender.com/update_payment/${selectedService.client_id}`,
                     {
                       total_payment: selectedService.revenue,
                       payment: total_Paid ? total_Paid : 0,

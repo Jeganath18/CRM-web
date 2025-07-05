@@ -18,7 +18,7 @@ export default function RegisterForm({ onClose }: RegisterFormProps) {
     e.preventDefault();
 
     try {
-      const response = await axios.post("http://localhost:5000/register", {
+      const response = await axios.post("https://crm-server-yd9a.onrender.com/register", {
         name,
         email,
         role

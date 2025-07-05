@@ -115,7 +115,7 @@ export const LeadManagement = () => {
 
   const getClients = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/get_client_leads");
+      const res = await axios.get("https://crm-server-yd9a.onrender.com/get_client_leads");
       const mappedLeads = res.data.map((lead: LeadFromServer) => ({
         id: lead.id,
         name: lead.company_name,
@@ -170,9 +170,9 @@ export const LeadManagement = () => {
 
     try {
       if (editId !== null) {
-        await axios.put(`http://localhost:5000/edit_lead/${editId}`, payload);
+        await axios.put(`https://crm-server-yd9a.onrender.com/edit_lead/${editId}`, payload);
       } else {
-        await axios.post("http://localhost:5000/add-lead", payload);
+        await axios.post("https://crm-server-yd9a.onrender.com/add-lead", payload);
       }
       setFormData({ company: "", owner: "", email: "", phone: "", services: [], assignedTo: "" });
       setEditId(null);
@@ -192,11 +192,11 @@ export const LeadManagement = () => {
 
       try {
         console.log("About to call PATCH...");
-        console.log("URL:", `http://localhost:5000/edit_lead/${leadId}`);
+        console.log("URL:", `https://crm-server-yd9a.onrender.com/edit_lead/${leadId}`);
         console.log("Payload:", { stage_status: nextStage });
 
         const res = await axios.patch(
-          `http://localhost:5000/edit_lead/${leadId}`,
+          `https://crm-server-yd9a.onrender.com/edit_lead/${leadId}`,
           { stage_status: nextStage },
           { timeout: 10000 }
         );
@@ -274,7 +274,7 @@ useEffect(() => {
     if (!deleteleadId) return;
     setDeleting(true);
     try {
-      await axios.delete(`http://localhost:5000/delete_lead/${deleteleadId}`);
+      await axios.delete(`https://crm-server-yd9a.onrender.com/delete_lead/${deleteleadId}`);
       setShowDeleteModal(false);
       setDeleteleadId(null);
       setDropdownOpen(null);
@@ -289,7 +289,7 @@ useEffect(() => {
    const droplead = async () => {
     if (!dropleadId) return;
     try {
-      await axios.patch(`http://localhost:5000/drop_lead/${dropleadId}`);
+      await axios.patch(`https://crm-server-yd9a.onrender.com/drop_lead/${dropleadId}`);
       setShowDropModal(false);
       setDropleadId(null);
       setDropdownOpen(null);
@@ -338,7 +338,7 @@ useEffect(() => {
           stage_status: "new",
         };
 
-        await axios.post("http://localhost:5000/add-lead", payload);
+        await axios.post("https://crm-server-yd9a.onrender.com/add-lead", payload);
       }
 
       toast.success("✅ All leads uploaded successfully!", { id: toastId });
