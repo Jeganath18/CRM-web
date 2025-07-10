@@ -6,8 +6,8 @@ import { ServiceTracking } from "@/components/crm/ServiceTracking";
 import { TeamCollaboration } from "@/components/crm/TeamCollaboration";
 import { LeadManagement } from "@/components/crm/LeadManagement";
 import { Analytics } from "@/components/crm/Analytics";
-import { Settings } from "@/components/crm/Settings";
 import { Billing } from "@/components/crm/Billing";
+import Settings from "@/components/crm/Settings";
 
 interface IndexProps {
   userRole: string | null;
@@ -28,8 +28,7 @@ const Index = ({ userName,userRole, onLogout }: IndexProps) => {
       case "services":
         return <ServiceTracking userName={userName} userRole={userRole} />;
       case "billing":
-        console.log("It hits");
-        return <Billing  />;  
+        return <Billing userName={userName} userRole={userRole} />;  
       case "team":
         return <TeamCollaboration />;
       case "leads":

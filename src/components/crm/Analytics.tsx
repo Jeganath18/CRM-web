@@ -2,30 +2,59 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { TrendingUp, DollarSign, Users, FileText } from "lucide-react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
 export const Analytics = () => {
-  const revenueData = [
-    { month: "Jan", revenue: 450000, clients: 45 },
-    { month: "Feb", revenue: 520000, clients: 52 },
-    { month: "Mar", revenue: 480000, clients: 48 },
-    { month: "Apr", revenue: 620000, clients: 62 },
-    { month: "May", revenue: 580000, clients: 58 },
-    { month: "Jun", revenue: 750000, clients: 75 }
-  ];
+    const [serviceData,setserviceData] = useState([]);
+    const [dashData,setdashData] = useState([]);
+  const [revenueData,setrevenueData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const serviceData = [
-    { name: "GST Filing", value: 40, color: "#8884d8" },
-    { name: "ITR Processing", value: 30, color: "#82ca9d" },
-    { name: "MCA Compliance", value: 20, color: "#ffc658" },
-    { name: "IP Services", value: 10, color: "#ff7c7c" }
-  ];
 
-  const teamPerformanceData = [
-    { team: "GST Team", completed: 45, target: 50, efficiency: 90 },
-    { team: "ITR Team", completed: 38, target: 40, efficiency: 95 },
-    { team: "MCA Team", completed: 22, target: 25, efficiency: 88 },
-    { team: "IP Team", completed: 15, target: 15, efficiency: 100 }
-  ];
+ 
+useEffect(() => {
+  async function fetchData() {
+    try {
+      const [service, revenue, dashrevenue, teamperformance] = await Promise.all([
+        axios.get("https://crm-server-yd9a.onrender.com/get_analytics"),
+        axios.get("https://crm-server-yd9a.onrender.com/get_revenue_analytics"),
+        axios.get("https://crm-server-yd9a.onrender.com/get_dashboard_analytics"),
+        axios.get("https://crm-server-yd9a.onrender.com/team_performance"),
+      ]);
+
+      setteamPerformanceData([
+        { team: "INCORP Team", target: teamperformance.data[4].total_services, completed: teamperformance.data[4].completed_services, efficiency: teamperformance.data[4].efficiency },
+        { team: "GST Team", target: teamperformance.data[0].total_services, completed: teamperformance.data[0].completed_services, efficiency: teamperformance.data[0].efficiency },
+        { team: "ITR Team", target: teamperformance.data[1].total_services, completed: teamperformance.data[1].completed_services, efficiency: teamperformance.data[1].efficiency },
+        { team: "MCA Team", target: teamperformance.data[3].total_services, completed: teamperformance.data[3].completed_services, efficiency: teamperformance.data[3].efficiency },
+        { team: "IP Team", target: teamperformance.data[2].total_services, completed: teamperformance.data[2].completed_services, efficiency: teamperformance.data[2].efficiency }
+      ]);
+
+      setrevenueData(revenue.data);
+      setdashData(dashrevenue.data);
+      setserviceData([
+        { name: "Incorporation", value: service.data[0].count, color: "#8884d8" },
+        { name: "GST Fillings", value: service.data[1].count, color: "#82ca9d" },
+        { name: "Trademark/IP", value: service.data[2].count, color: "#ffc658" },
+        { name: "ITR", value: service.data[3].count, color: "#ff7c7c" },
+        { name: "MCA", value: service.data[4].count, color: "#ff7c1c" }
+      ]);
+
+      setLoading(false); // all done
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      setLoading(false);
+    }
+  }
+
+  fetchData();
+}, []);
+
+
+
+
+  const [teamPerformanceData,setteamPerformanceData] = useState([]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -43,8 +72,7 @@ export const Analytics = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-green-600">₹38.5L</p>
-                <p className="text-xs text-green-600">+15% from last month</p>
+                <p className="text-2xl font-bold text-green-600">₹{dashData[0]?.total_revenue}</p>
               </div>
               <DollarSign className="h-8 w-8 text-green-500" />
             </div>
@@ -56,8 +84,7 @@ export const Analytics = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Clients</p>
-                <p className="text-2xl font-bold text-blue-600">340</p>
-                <p className="text-xs text-blue-600">+8% from last month</p>
+                <p className="text-2xl font-bold text-blue-600">{dashData[0]?.active_clients}</p>
               </div>
               <Users className="h-8 w-8 text-blue-500" />
             </div>
@@ -69,8 +96,7 @@ export const Analytics = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Services Completed</p>
-                <p className="text-2xl font-bold text-purple-600">120</p>
-                <p className="text-xs text-purple-600">+12% from last month</p>
+                <p className="text-2xl font-bold text-purple-600">{dashData[0]?.services_completed}</p>
               </div>
               <FileText className="h-8 w-8 text-purple-500" />
             </div>
@@ -82,8 +108,7 @@ export const Analytics = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Efficiency Rate</p>
-                <p className="text-2xl font-bold text-yellow-600">93%</p>
-                <p className="text-xs text-yellow-600">+3% from last month</p>
+                <p className="text-2xl font-bold text-yellow-600">{dashData[0]?.efficiency_rate}%</p>
               </div>
               <TrendingUp className="h-8 w-8 text-yellow-500" />
             </div>
@@ -153,7 +178,7 @@ export const Analytics = () => {
               <YAxis />
               <Tooltip />
               <Bar dataKey="completed" fill="#8884d8" name="Completed" />
-              <Bar dataKey="target" fill="#82ca9d" name="Target" />
+              <Bar dataKey="target" fill="#82ca9d" name="Total" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -167,7 +192,7 @@ export const Analytics = () => {
               <h3 className="font-semibold text-gray-900 mb-2">{team.team}</h3>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Completed:</span>
+                  <span className="text-gray-600">target:</span>
                   <span className="font-medium">{team.completed}</span>
                 </div>
                 <div className="flex justify-between text-sm">

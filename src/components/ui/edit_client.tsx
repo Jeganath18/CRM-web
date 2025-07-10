@@ -68,6 +68,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
         setHistory(history_of_client.data);
         const fetchedClient = res.data;
         setClient(fetchedClient);
+        console.log(client);
         setStatus(fetchedClient.status === "active");
         setSelectedServices(fetchedClient.services || []);
 
@@ -319,7 +320,22 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
               ))}
             </div>
           </div>
+         {client.services.includes("INCORP") && (
+  <div className="bg-sky-900 p-5 rounded-xl text-white ">  
+    <h2>Incorporation Details</h2>
+    <ul>
+      {client.shareholders.map((s, idx) => (
+        <li key={idx}>
+          {s.name} - {s.percent}%
+        </li>
+      ))}
+    </ul>
+    <p>ROC: {client.roc}</p>
+  </div>
+)}
+
         </div>
+
 
         {/* Document Upload Section */}
         <div className="mt-6">

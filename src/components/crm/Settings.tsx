@@ -1,194 +1,197 @@
+import { useState, useEffect } from "react";
+import { User, Cog } from "lucide-react";
+import axios from "axios";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings as SettingsIcon, User, Bell, Shield, Database } from "lucide-react";
+export default function Settings() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    newPassword: "",
+  });
 
-export const Settings = () => {
-  // return (
-    // <div className="space-y-6 animate-fade-in">
-    //   <div className="flex items-center justify-between">
-    //     <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-    //     <div className="text-sm text-gray-500">
-    //       Manage your CRM preferences and configurations
-    //     </div>
-    //   </div>
+  const [changePassword, setChangePassword] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-    //   <Tabs defaultValue="profile" className="w-full">
-    //     <TabsList className="grid w-full grid-cols-4">
-    //       <TabsTrigger value="profile">Profile</TabsTrigger>
-    //       <TabsTrigger value="notifications">Notifications</TabsTrigger>
-    //       <TabsTrigger value="security">Security</TabsTrigger>
-    //       <TabsTrigger value="system">System</TabsTrigger>
-    //     </TabsList>
+  useEffect(() => {
+    // Simulate fetching user data
+    const fetchUser = async () => {
+      try {
+        setLoading(true);
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+         const user = localStorage.getItem("userName");
+      try {
+        const res = await axios.get(`https://crm-server-yd9a.onrender.com/get_user/${user}`);
+        console.log(res.data);
+       if (res.data && res.data.length > 0) {
+  const userData = res.data[0];
+  setFormData((prev) => ({
+    ...prev,
+    name: userData.name || "",
+    email: userData.email || "",
+  }));
+}
+      } catch (err) {
+        console.error("Error fetching user:", err);
+      }   
+      } catch (err) {
+        console.error("Error fetching user:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    //     <TabsContent value="profile" className="space-y-6">
-    //       <Card className="animate-scale-in">
-    //         <CardHeader>
-    //           <CardTitle className="flex items-center gap-2">
-    //             <User className="h-5 w-5" />
-    //             Profile Settings
-    //           </CardTitle>
-    //         </CardHeader>
-    //         <CardContent className="space-y-4">
-    //           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    //             <div className="space-y-2">
-    //               <Label htmlFor="firstName">First Name</Label>
-    //               <Input id="firstName" defaultValue="John" />
-    //             </div>
-    //             <div className="space-y-2">
-    //               <Label htmlFor="lastName">Last Name</Label>
-    //               <Input id="lastName" defaultValue="Doe" />
-    //             </div>
-    //           </div>
-    //           <div className="space-y-2">
-    //             <Label htmlFor="email">Email</Label>
-    //             <Input id="email" type="email" defaultValue="john.doe@company.com" />
-    //           </div>
-    //           <div className="space-y-2">
-    //             <Label htmlFor="phone">Phone</Label>
-    //             <Input id="phone" defaultValue="+91 98765 43210" />
-    //           </div>
-    //           <div className="space-y-2">
-    //             <Label htmlFor="designation">Designation</Label>
-    //             <Input id="designation" defaultValue="Senior Manager" />
-    //           </div>
-    //           <Button>Save Changes</Button>
-    //         </CardContent>
-    //       </Card>
-    //     </TabsContent>
+    fetchUser();
+  }, []);
 
-    //     <TabsContent value="notifications" className="space-y-6">
-    //       <Card className="animate-scale-in">
-    //         <CardHeader>
-    //           <CardTitle className="flex items-center gap-2">
-    //             <Bell className="h-5 w-5" />
-    //             Notification Preferences
-    //           </CardTitle>
-    //         </CardHeader>
-    //         <CardContent className="space-y-6">
-    //           <div className="flex items-center justify-between">
-    //             <div className="space-y-1">
-    //               <p className="text-sm font-medium">Email Notifications</p>
-    //               <p className="text-xs text-gray-500">Receive notifications via email</p>
-    //             </div>
-    //             <Switch defaultChecked />
-    //           </div>
-    //           <div className="flex items-center justify-between">
-    //             <div className="space-y-1">
-    //               <p className="text-sm font-medium">Deadline Reminders</p>
-    //               <p className="text-xs text-gray-500">Get reminded about upcoming deadlines</p>
-    //             </div>
-    //             <Switch defaultChecked />
-    //           </div>
-    //           <div className="flex items-center justify-between">
-    //             <div className="space-y-1">
-    //               <p className="text-sm font-medium">Task Assignments</p>
-    //               <p className="text-xs text-gray-500">Notify when tasks are assigned to you</p>
-    //             </div>
-    //             <Switch defaultChecked />
-    //           </div>
-    //           <div className="flex items-center justify-between">
-    //             <div className="space-y-1">
-    //               <p className="text-sm font-medium">Client Updates</p>
-    //               <p className="text-xs text-gray-500">Receive updates about client activities</p>
-    //             </div>
-    //             <Switch />
-    //           </div>
-    //           <div className="flex items-center justify-between">
-    //             <div className="space-y-1">
-    //               <p className="text-sm font-medium">System Maintenance</p>
-    //               <p className="text-xs text-gray-500">Notify about system updates and maintenance</p>
-    //             </div>
-    //             <Switch defaultChecked />
-    //           </div>
-    //           <Button>Save Preferences</Button>
-    //         </CardContent>
-    //       </Card>
-    //     </TabsContent>
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value || "",
+    }));
+  };
 
-    //     <TabsContent value="security" className="space-y-6">
-    //       <Card className="animate-scale-in">
-    //         <CardHeader>
-    //           <CardTitle className="flex items-center gap-2">
-    //             <Shield className="h-5 w-5" />
-    //             Security Settings
-    //           </CardTitle>
-    //         </CardHeader>
-    //         <CardContent className="space-y-6">
-    //           <div className="space-y-4">
-    //             <h3 className="text-lg font-medium">Change Password</h3>
-    //             <div className="space-y-2">
-    //               <Label htmlFor="currentPassword">Current Password</Label>
-    //               <Input id="currentPassword" type="password" />
-    //             </div>
-    //             <div className="space-y-2">
-    //               <Label htmlFor="newPassword">New Password</Label>
-    //               <Input id="newPassword" type="password" />
-    //             </div>
-    //             <div className="space-y-2">
-    //               <Label htmlFor="confirmPassword">Confirm New Password</Label>
-    //               <Input id="confirmPassword" type="password" />
-    //             </div>
-    //             <Button>Update Password</Button>
-    //           </div>
-              
-    //           <div className="border-t pt-6">
-    //             <h3 className="text-lg font-medium mb-4">Two-Factor Authentication</h3>
-    //             <div className="flex items-center justify-between">
-    //               <div className="space-y-1">
-    //                 <p className="text-sm font-medium">Enable 2FA</p>
-    //                 <p className="text-xs text-gray-500">Add an extra layer of security to your account</p>
-    //               </div>
-    //               <Switch />
-    //             </div>
-    //           </div>
-    //         </CardContent>
-    //       </Card>
-    //     </TabsContent>
+  const handleSubmit = async () => {
+    try {
+      const body = {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        ...(changePassword && { newPassword: formData.newPassword }),
+      };
 
-    //     <TabsContent value="system" className="space-y-6">
-    //       <Card className="animate-scale-in">
-    //         <CardHeader>
-    //           <CardTitle className="flex items-center gap-2">
-    //             <Database className="h-5 w-5" />
-    //             System Configuration
-    //           </CardTitle>
-    //         </CardHeader>
-    //         <CardContent className="space-y-6">
-    //           <div className="space-y-4">
-    //             <h3 className="text-lg font-medium">General Settings</h3>
-    //             <div className="flex items-center justify-between">
-    //               <div className="space-y-1">
-    //                 <p className="text-sm font-medium">Auto-save</p>
-    //                 <p className="text-xs text-gray-500">Automatically save changes</p>
-    //               </div>
-    //               <Switch defaultChecked />
-    //             </div>
-    //             <div className="flex items-center justify-between">
-    //               <div className="space-y-1">
-    //                 <p className="text-sm font-medium">Dark Mode</p>
-    //                 <p className="text-xs text-gray-500">Use dark theme</p>
-    //               </div>
-    //               <Switch />
-    //             </div>
-    //           </div>
-              
-    //           <div className="border-t pt-6">
-    //             <h3 className="text-lg font-medium mb-4">Data Management</h3>
-    //             <div className="space-y-4">
-    //               <Button variant="outline">Export Data</Button>
-    //               <Button variant="outline">Import Data</Button>
-    //               <Button variant="destructive">Clear Cache</Button>
-    //             </div>
-    //           </div>
-    //         </CardContent>
-    //       </Card>
-    //     </TabsContent>
-    //   </Tabs>
-    // </div>
-  // );
-};
+      console.log("Submitting:", body);
+      // Replace with actual API call
+      const response = await axios.post("https://crm-server-yd9a.onrender.com/update_profile", body);
+      localStorage.setItem("user", formData.name);
+      alert("Profile updated successfully!");
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      alert("Error updating profile. Please try again.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="max-w-8xl mx-auto">
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              Settings
+            </h1>
+            <div className="text-sm text-gray-500">Manage your Profile</div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Profile Settings
+            </h2>
+          </div>
+
+          <div onSubmit={handleSubmit} className="p-6 space-y-6">
+            <div className="space-y-2">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                Name
+              </label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Current Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                id="change-password"
+                type="checkbox"
+                checked={changePassword}
+                onChange={(e) => setChangePassword(e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="change-password" className="text-sm font-medium text-gray-700">
+                Change Password
+              </label>
+            </div>
+
+            {changePassword && (
+              <div className="space-y-2 animate-fadeIn">
+                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
+                  New Password
+                </label>
+                <input
+                  id="newPassword"
+                  name="newPassword"
+                  type="password"
+                  value={formData.newPassword}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required={changePassword}
+                />
+              </div>
+            )}
+
+            <div className="pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={handleSubmit}
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 font-medium"
+              >
+                Save Changes
+              </button> 
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

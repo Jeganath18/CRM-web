@@ -20,6 +20,7 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   // Form state
   const [step, setStep] = useState(1);
   const [companyName, setCompanyName] = useState('');
+  const [roc, setRoc] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [email, setEmail] = useState('');
@@ -30,19 +31,26 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const [status, setStatus] = useState(true);
   const [revenue, setRevenue] = useState(0);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  
+  const [shareholderCount, setShareholderCount] = useState<number>(0);
+  const [shareholders, setShareholders] = useState<
+    { name: string; percent: number }[]
+  >([]);
+
   // Company search
   const [companySearch, setCompanySearch] = useState('');
+  const [companyROC, setCompanyROC] = useState('');
+  const [ROCsuggestions, setROCSuggestions] = useState<CompanySuggestion[]>([]);
   const [suggestions, setSuggestions] = useState<CompanySuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  
+  const [showROCSuggestions, setShowROCSuggestions] = useState(false);
+
   // File uploads
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentFileCategory, setCurrentFileCategory] = useState('');
-  
+
   // UI state
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -58,7 +66,7 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
         description: '',
         uploadProgress: 0
       }));
-      
+
       setUploadedFiles(prev => [...prev, ...newFiles]);
       setCurrentFileCategory('');
     }
@@ -77,8 +85,8 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
 
   // Update file description
   const updateFileDescription = (id: string, description: string) => {
-    setUploadedFiles(prev => 
-      prev.map(file => 
+    setUploadedFiles(prev =>
+      prev.map(file =>
         file.id === id ? { ...file, description } : file
       )
     );
@@ -89,15 +97,15 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     setCompanySearch(query);
     if (query.length > 2) {
       try {
-        // Mock API call - replace with actual API
         const mockResponse = [
-          { name: `${query} Private Limited`, cin: "U12345MH2022PTC123456", status: "Active" },
-          { name: `${query} Technologies LLP`, cin: "AABCS1234D", status: "Active" },
-          { name: `${query} Solutions Inc`, cin: "U67890DL2023PTC654321", status: "Active" },
-        ].filter(company => 
+          { name: `${query} Private Limited` },
+          { name: `${query} LLP` },
+          { name: `${query} OPC` },
+          { name: `${query} NGO` },
+        ].filter(company =>
           company.name.toLowerCase().includes(query.toLowerCase())
         );
-        
+
         setSuggestions(mockResponse);
         setShowSuggestions(true);
       } catch (error) {
@@ -109,14 +117,59 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     }
   };
 
-  // Select company from search
+  const handleROCSearch = async (query: string) => {
+    setCompanyROC(query);
+    if (query.length > 2) {
+      try {
+        const mockResponse = [
+          { name: "ROC Ahemedabad" },
+          { name: "ROC Bangalore" },
+          { name: "ROC Bhubaneswar" },
+          { name: "ROC Chandigarh" },
+          { name: "ROC Chennai" },
+          { name: "ROC Delhi" },
+          { name: "ROC Erunakulam" },
+          { name: "ROC Goa" },
+          { name: "ROC Guwahati" },
+          { name: "ROC Gwalior" },
+          { name: "ROC Hyderabad" },
+          { name: "ROC Jammu" },
+          { name: "ROC Jaipur" },
+          { name: "ROC Kanpur" },
+          { name: "ROC Kolkata" },
+          { name: "ROC Mumbai" },
+          { name: "ROC Patna" },
+          { name: "ROC Pune" },
+          { name: "ROC Shilong" },
+          { name: "ROC Uttarakhand" },
+          { name: "ROC Vijayawada" },
+        ].filter(company =>
+          company.name.toLowerCase().includes(query.toLowerCase())
+        );
+
+        setROCSuggestions(mockResponse);
+        setShowROCSuggestions(true);
+      } catch (error) {
+        console.error("Search failed:", error);
+      }
+    } else {
+      setROCSuggestions([]);
+      setShowROCSuggestions(false);
+    }
+  };
+
   const handleSelectCompany = (company: CompanySuggestion) => {
     setCompanyName(company.name);
     setCompanySearch(company.name);
     setShowSuggestions(false);
   };
 
-  // Toggle service selection
+  const handleSelectROC = (company: CompanySuggestion) => {
+    setRoc(company.name);
+    setCompanyROC(company.name);
+    setShowROCSuggestions(false);
+  };
+
   const toggleService = (service: string) => {
     setSelectedServices(prev =>
       prev.includes(service)
@@ -125,11 +178,9 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     );
   };
 
-  // Form navigation
   const nextStep = () => setStep(step + 1);
   const prevStep = () => setStep(step - 1);
 
-  // Submit form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsUploading(true);
@@ -138,6 +189,7 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
 
     const formData = new FormData();
     formData.append('company_name', companyName);
+    formData.append('roc', roc);
     formData.append('business_type', businessType);
     formData.append('owner_name', ownerName);
     formData.append('company_email', email);
@@ -148,15 +200,16 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     formData.append('status', status ? 'active' : 'inactive');
     formData.append('revenue', revenue.toString());
     formData.append('services', JSON.stringify(selectedServices));
+    formData.append('shareholders', JSON.stringify(shareholders));
 
-    // Add files with metadata
-    uploadedFiles.forEach((file, index) => {
+    uploadedFiles.forEach((file) => {
       formData.append(`files`, file.file);
       formData.append(`file_categories`, file.category);
       if (file.description) {
         formData.append(`file_descriptions`, file.description);
       }
     });
+    
 
     try {
       const response = await axios.post('https://crm-server-yd9a.onrender.com/add_client', formData, {
@@ -179,7 +232,6 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     }
   };
 
-  // Clean up object URLs
   useEffect(() => {
     return () => {
       uploadedFiles.forEach(file => URL.revokeObjectURL(file.preview));
@@ -319,7 +371,7 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                     </div>
 
                     {selectedServices.includes('INCORP') && (
-                      <div className="mt-6">
+                      <div className="mt-6 space-y-4">
                         <label className="block mb-2 text-sm font-medium text-gray-700">
                           Company Name Search
                         </label>
@@ -332,12 +384,38 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                             placeholder="Search company name..."
                           />
                           {showSuggestions && suggestions.length > 0 && (
-                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                               {suggestions.map((company, index) => (
                                 <div
                                   key={index}
                                   className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                                   onClick={() => handleSelectCompany(company)}
+                                >
+                                  <div className="font-medium">{company.name}</div>
+                                  {company.cin && (
+                                    <div className="text-sm text-gray-500">CIN: {company.cin}</div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={companyROC}
+                            onChange={(e) => handleROCSearch(e.target.value)}
+                            className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Search ROC (ex: ROC Chennai)"
+                          />
+                          {showROCSuggestions && ROCsuggestions.length > 0 && (
+                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                              {ROCsuggestions.map((company, index) => (
+                                <div
+                                  key={index}
+                                  className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                  onClick={() => handleSelectROC(company)}
                                 >
                                   <div className="font-medium">{company.name}</div>
                                   {company.cin && (
@@ -392,6 +470,18 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                       
                       <div>
                         <label className="block mb-2 text-sm font-medium text-gray-700">
+                          ROC
+                        </label>
+                        <input
+                          type="text"
+                          value={roc}
+                          onChange={(e) => setRoc(e.target.value)}
+                          className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-2 text-sm font-medium text-gray-700">
                           Business Type*
                         </label>
                         <input
@@ -427,6 +517,64 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                         />
                       </div>
                     </div>
+                    
+                    <div>
+                      <label className="block mb-2 text-sm font-medium text-gray-700">
+                        Number of Shareholders
+                      </label>
+                      <select
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        value={shareholderCount}
+                        onChange={(e) => {
+                          const count = Number(e.target.value);
+                          setShareholderCount(count);
+                          setShareholders(Array(count).fill(null).map(() => ({ name: '', percent: 0 })));
+                        }}
+                      >
+                        <option value={0}>Select count</option>
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <option key={n} value={n}>
+                            {n}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {shareholders.map((sh, index) => (
+                      <div key={index} className="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">
+                            Shareholder Name {index + 1}
+                          </label>
+                          <input
+                            type="text"
+                            value={sh.name}
+                            onChange={(e) => {
+                              const newShareholders = [...shareholders];
+                              newShareholders[index].name = e.target.value;
+                              setShareholders(newShareholders);
+                            }}
+                            className="w-full px-3 py-2 border rounded"
+                            placeholder="Enter name"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Share %</label>
+                          <input
+                            type="number"
+                            value={sh.percent}
+                            onChange={(e) => {
+                              const newShareholders = [...shareholders];
+                              newShareholders[index].percent = Number(e.target.value);
+                              setShareholders(newShareholders);
+                            }}
+                            className="w-full px-3 py-2 border rounded"
+                            placeholder="Enter %"
+                          />
+                        </div>
+                      </div>
+                    ))}
 
                     {/* Document Upload Section */}
                     <div className="pt-4">
@@ -443,7 +591,10 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                       
                       {/* Document type buttons */}
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
-                        {['GST Certificate', 'PAN Card', 'Aadhaar', 'MOA', 'AOA', 'Bank Statement'].map((docType) => (
+                        {(selectedServices.includes('INCORP')
+                          ? ['PAN Card', 'Aadhaar', 'Identity Proof', 'Address Proof', 'Photo']
+                          : ['GST Certificate', 'PAN Card', 'Aadhaar', 'MOA', 'AOA', 'Bank Statement']
+                        ).map((docType) => (
                           <button
                             key={docType}
                             type="button"
@@ -454,16 +605,18 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                           </button>
                         ))}
                         
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const customType = prompt("Enter document type:");
-                            if (customType) triggerFileInput(customType);
-                          }}
-                          className="flex items-center justify-center p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 transition-colors"
-                        >
-                          <span className="text-sm">+ Other Document</span>
-                        </button>
+                        {!selectedServices.includes('INCORP') && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const customType = prompt("Enter document type:");
+                              if (customType) triggerFileInput(customType);
+                            }}
+                            className="flex items-center justify-center p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 transition-colors"
+                          >
+                            <span className="text-sm">+ Other Document</span>
+                          </button>
+                        )}
                       </div>
                       
                       {/* Uploaded files list */}

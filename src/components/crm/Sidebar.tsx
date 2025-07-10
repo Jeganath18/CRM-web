@@ -35,7 +35,6 @@ const fullMenuItems = [
   { id: "team", label: "Team", icon: UserCheck },
   { id: "leads", label: "Leads", icon: TrendingUp },
   { id: "analytics", label: "Analytics", icon: BarChart3 },
-  
 ];
 
 const getMenuItemsForRole = (role: string | null) => {
@@ -168,8 +167,9 @@ export const Sidebar = ({ userName,userRole, activeTab, setActiveTab, isOpen, se
               <div className="p-1">
                 <button
                   className="flex items-center gap-x-3 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100"
-                  
+                  onClick={()=>setActiveTab("settings")}
                 >
+                  
                   Settings
                 </button>
                 <button

@@ -200,9 +200,11 @@ export const ServiceTracking = ({userName,userRole}:clientprops) => {
                         <Badge className={getStatusColor(service.status)}>
                           {service.status}
                         </Badge>
+                        {service.progress<100 && 
                         <Badge className={getPriorityColor(service.priority)}>
                           {service.priority}
                         </Badge>
+                        }           
                       </div>
                     </div>
 

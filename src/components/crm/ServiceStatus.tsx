@@ -16,39 +16,39 @@ export const ServiceStatus = () => {
 
         setservices([
            {
-      name: data[0].name,
-      completed: data[0].completed,
-      total: data[0].total,
-      status: data[0].status,
-      deadline: data[0].deadline
+      name: data[0].name|| "" ,
+      completed: data[0].completed|| "",
+      total: data[0].total|| "",
+      status: data[0].status|| "",
+      deadline: data[0].deadline|| ""
     },
       {
-      name: data[1].name,
-      completed: data[1].completed,
-      total: data[1].total,
-      status: data[1].status,
-      deadline: data[1].deadline
+      name: data[1].name || "",
+      completed: data[1].completed|| "",
+      total: data[1].total||"",
+      status: data[1].status||"",
+      deadline: data[1].deadline||""
     },
       {
-      name: data[2].name,
-      completed: data[2].completed,
-      total: data[2].total,
-      status: data[2].status,
-      deadline: data[2].deadline
+      name: data[2].name||"",
+      completed: data[2].completed||"",
+      total: data[2].total||"",
+      status: data[2].status||"",
+      deadline: data[2].deadline||""
     },
         {
-      name: data[3].name,
-      completed: data[3].completed,
-      total: data[3].total,
-      status: data[3].status,
-      deadline: data[3].deadline
+      name: data[3].name||"",
+      completed: data[3].completed||"",
+      total: data[3].total||"",
+      status: data[3].status||"",
+      deadline: data[3].deadline||""
     },
           {
-      name: data[4].name,
-      completed: data[4].completed,
-      total: data[4].total,
-      status: data[4].status,
-      deadline: data[4].deadline
+      name: data[4].name||"",
+      completed: data[4].completed||"",
+      total: data[4].total||"",
+      status: data[4].status||"",
+      deadline: data[4].deadline||""
     },
         ]
 
