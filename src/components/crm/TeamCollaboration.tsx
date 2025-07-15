@@ -14,7 +14,7 @@ export const TeamCollaboration = () => {
   useEffect(() => {
     const fetchTeams = async () => {
       try {
-        const res = await axios.get("https://crm-server-yd9a.onrender.com/users/team-groups");
+        const res = await axios.get("http://localhost:5000/users/team-groups");
         setTeams(res.data);
       } catch (err) {
         console.error("Failed to fetch team data:", err);

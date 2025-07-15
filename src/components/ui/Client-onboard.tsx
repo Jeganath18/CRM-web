@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
+import logo from "../../assets/Wealth Empires.jpg";
 
 interface CompanySuggestion {
   name: string;
@@ -99,9 +100,12 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
       try {
         const mockResponse = [
           { name: `${query} Private Limited` },
+          { name: `${query} Public Limited` },
+          { name: `${query} Society` },
           { name: `${query} LLP` },
           { name: `${query} OPC` },
           { name: `${query} NGO` },
+
         ].filter(company =>
           company.name.toLowerCase().includes(query.toLowerCase())
         );
@@ -212,7 +216,7 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     
 
     try {
-      const response = await axios.post('https://crm-server-yd9a.onrender.com/add_client', formData, {
+      const response = await axios.post('http://localhost:5000/add_client', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round(
@@ -239,8 +243,10 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   }, [uploadedFiles]);
 
   return (
+    <div>
     <div className="fixed inset-0 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <img src={logo} alt="Logo" style={{height:"100px"}} className='relative left-5 top-5' />
         <div className="p-6">
           {submitSuccess ? (
             <div className="p-4 mt-4 bg-green-50 text-green-700 rounded-lg">
@@ -252,14 +258,6 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                 <h2 className="text-2xl font-bold text-gray-800">
                   Client Onboarding - Step {step} of 3
                 </h2>
-                <button
-                  onClick={onClose}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
               </div>
 
               {/* Progress bar */}
@@ -282,7 +280,7 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                           Owner Name*
                         </label>
                         <input
-                          type="text"
+                          type="name"
                           value={ownerName}
                           onChange={(e) => setOwnerName(e.target.value)}
                           className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
@@ -353,7 +351,7 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                         Select services needed:
                       </label>
                       <div className="flex flex-wrap gap-3">
-                        {['INCORP', 'GST', 'ITR', 'MCA', 'IP'].map((service) => (
+                        {['INCORP', 'GST', 'IP'].map((service) => (
                           <button
                             key={service}
                             type="button"
@@ -482,7 +480,7 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
 
                       <div>
                         <label className="block mb-2 text-sm font-medium text-gray-700">
-                          Business Type*
+                          Business Sector*
                         </label>
                         <input
                           type="text"
@@ -495,11 +493,11 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                       
                       <div>
                         <label className="block mb-2 text-sm font-medium text-gray-700">
-                          PAN Number
+                          email*
                         </label>
                         <input
                           type="text"
-                          value={pan}
+                          value={email}
                           onChange={(e) => setPan(e.target.value)}
                           className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
                         />
@@ -520,31 +518,65 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                     
                     <div>
                       <label className="block mb-2 text-sm font-medium text-gray-700">
-                        Number of Shareholders
+                        Number of Directors
                       </label>
                       <select
-                        className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                        value={shareholderCount}
-                        onChange={(e) => {
-                          const count = Number(e.target.value);
-                          setShareholderCount(count);
-                          setShareholders(Array(count).fill(null).map(() => ({ name: '', percent: 0 })));
-                        }}
-                      >
-                        <option value={0}>Select count</option>
-                        {[1, 2, 3, 4, 5].map((n) => (
-                          <option key={n} value={n}>
-                            {n}
-                          </option>
-                        ))}
-                      </select>
+  className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+  value={shareholderCount}
+  onChange={(e) => {
+    const count = Number(e.target.value);
+    setShareholderCount(count);
+    setShareholders(Array(count).fill(null).map(() => ({ name: '', percent: 0 })));
+  }}
+>
+  <option value={0}>Select count</option>
+
+  {(() => {
+    const name = companyName.toLowerCase();
+
+    if (name.includes("private ltd") || name.includes("pvt")) {
+      return [2, 3, 4, 5].map(n => (
+        <option key={n} value={n}>{n} Director(s)</option>
+      ));
+    }
+
+    if (name.includes("public ltd")) {
+      return [3, 4, 5].map(n => (
+        <option key={n} value={n}>{n} Director(s)</option>
+      ));
+    }
+
+    if (name.includes("society")) {
+      return [7, 8, 9, 10].map(n => (
+        <option key={n} value={n}>{n} Member(s)</option>
+      ));
+    }
+
+    if (name.includes("llp")) {
+      return [2, 3, 4, 5].map(n => (
+        <option key={n} value={n}>{n} Partner(s)</option>
+      ));
+    }
+
+    if (name.includes("opc")) {
+      return [1].map(n => (
+        <option key={n} value={n}>{n} Director</option>
+      ));
+    }
+
+    return [1, 2, 3, 4, 5].map(n => (
+      <option key={n} value={n}>{n}</option>
+    ));
+  })()}
+</select>
+
                     </div>
                     
                     {shareholders.map((sh, index) => (
                       <div key={index} className="grid grid-cols-2 gap-4 mt-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700">
-                            Shareholder Name {index + 1}
+                            Director Name {index + 1}
                           </label>
                           <input
                             type="text"
@@ -716,8 +748,15 @@ const OnboardingForm: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
             </div>
           )}
         </div>
+                <p className="text-center text-sm text-gray-500 mb-5">
+  &copy; {new Date().getFullYear()} Wealth Empires
+</p>
       </div>
+
+
     </div>
+      
+</div>
   );
 };
 

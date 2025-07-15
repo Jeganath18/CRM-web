@@ -7,7 +7,7 @@ const Login = ({ onLogin }: { onLogin: (role: string, name: string) => void }) =
 
   const handleLogin = async () => {
     try {
-      const response = await fetch("https://crm-server-yd9a.onrender.com/login", {
+      const response = await fetch("http://localhost:5000/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -15,7 +15,7 @@ const Login = ({ onLogin }: { onLogin: (role: string, name: string) => void }) =
         credentials: "include",
         body: JSON.stringify({ email, password }),
       });
-
+      console.log(response);
       const data = await response.json();
       if (response.ok && data.success) {
         localStorage.setItem("token", "session-user");

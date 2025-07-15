@@ -10,7 +10,7 @@ export const ServiceStatus = () => {
     console.log("Inside useEffect");
     const fetchservicestats = async() =>{
       try{
-        const res = await axios.get("https://crm-server-yd9a.onrender.com/get_service_stats");
+        const res = await axios.get("http://localhost:5000/get_service_stats");
         const data=res.data;
         console.log(res.data);
 
@@ -96,7 +96,7 @@ export const ServiceStatus = () => {
           {services.map((service, index) => (
             <div key={service.name} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-medium text-gray-900">{service.name}</h3>
+                <h3 className="font-medium text-gray-900">{service.name.toUpperCase()}</h3>
                 <Badge className={getStatusColor(service.status)}>
                   {getStatusText(service.status)}
                 </Badge>

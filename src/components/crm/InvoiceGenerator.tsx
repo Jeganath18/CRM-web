@@ -10,11 +10,11 @@ interface InvoiceProps {
   clientEmail: string;
   clientGST: string;
   services: string;
-  amount: number;
+  amount: number[];
   invoiceId: string;
   issueDate: string;
   dueDate: string;
-  onClose?: () => void; // Optional close handler
+  onClose?: () => void; 
 }
 
 const InvoicePreview = ({
@@ -123,26 +123,36 @@ const InvoicePreview = ({
             </div>
           </div>
 
-          <table className="w-full text-sm mb-10">
-            <thead className="border-b border-gray-700 text-gray-800">
-              <tr>
-                <th className="text-left py-2">Item</th>
-                <th className="text-left py-2">Price</th>
-                <th className="text-left py-2">Sum</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-gray-800">
-                <td className="py-3 text-gray-800">{services}</td>
-                <td className="py-3 text-gray-800">₹{amount}</td>
-                <td className="py-3 font-semibold text-gray-800">₹{amount}</td>
-              </tr>
-            </tbody>
-          </table>
+         <table className="w-full text-sm mb-10">
+  <thead className="border-b border-gray-700 text-gray-800">
+    <tr>
+      <th className="text-left py-2">Item</th>
+      <th className="text-right py-2 px-0">Price</th>
+    </tr>
+  </thead>
+  <tbody>
+{Array.isArray(services) && Array.isArray(amount) &&
+  services.map((service, idx) => (
+    <tr key={idx} className="border-b border-gray-800">
+      <td className="py-3 text-left text-gray-800">
+        {service.toUpperCase()}
+      </td>
+      <td className="py-3 text-right text-gray-800">₹{amount[idx]}</td>
+    </tr>
+  ))}
+
+
+  </tbody>
+</table>
 
           <div className="text-right text-gray-800">
             <p className="text-lg font-semibold">Total Rupees</p>
-            <p className="text-xl font-bold">₹{amount}</p>
+            <p className="text-xl font-bold">
+  ₹
+  {Array.isArray(amount)
+    ? amount.reduce((sum, val) => sum + parseFloat(val || 0), 0).toFixed(2)
+    : "0.00"}
+</p>
           </div>
 
           <div className="mt-10 border-t border-gray-700 pt-4 text-sm text-gray-800">

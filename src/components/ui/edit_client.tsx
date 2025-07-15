@@ -7,6 +7,11 @@ interface EditClientProps {
   onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void;
 }
 
+interface Shareholder {
+  name: string;
+  percent: number;
+}
+
 interface Client {
   id: number;
   business_type: string;
@@ -23,6 +28,8 @@ interface Client {
   address?: string;
   gstin_file?: string;
   pan_file?: string;
+  shareholders?: Shareholder[];
+  roc?: string;
 }
 
 interface ClientHistoryEntry {
@@ -56,40 +63,43 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
   const [modalImage, setModalImage] = useState("");
   const [history, setHistory] = useState<ClientHistoryEntry[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [servicePrices, setServicePrices] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchClient = async () => {
       try {
-        const res = await axios.get(`https://crm-server-yd9a.onrender.com/client/${clientId}`);
+        const res = await axios.get(`http://localhost:5000/client/${clientId}`);
         const history_of_client = await axios.get(
-          `https://crm-server-yd9a.onrender.com/get_client_history/${clientId}`
+          `http://localhost:5000/get_client_history/${clientId}`
         );
-        
-        setHistory(history_of_client.data);
         const fetchedClient = res.data;
         setClient(fetchedClient);
-        console.log(client);
         setStatus(fetchedClient.status === "active");
         setSelectedServices(fetchedClient.services || []);
+        
+        // Initialize service prices if available
+        if (fetchedClient.service_prices) {
+          setServicePrices(fetchedClient.service_prices);
+        }
 
         if (fetchedClient.gstin_file) {
-          setExistingImageUrl1(`https://crm-server-yd9a.onrender.com/${fetchedClient.gstin_file}`);
+          setExistingImageUrl1(`http://localhost:5000/${fetchedClient.gstin_file}`);
         }
         if (fetchedClient.pan_file) {
-          setExistingImageUrl2(`https://crm-server-yd9a.onrender.com/${fetchedClient.pan_file}`);
+          setExistingImageUrl2(`http://localhost:5000/${fetchedClient.pan_file}`);
         }
 
-        // Fetch all client files
         if (fetchedClient.company_name) {
           const filesRes = await axios.get(
-            `https://crm-server-yd9a.onrender.com/client-files/${fetchedClient.company_name}`
+            `http://localhost:5000/client-files/${fetchedClient.company_name}`
           );
-          setClientFiles(filesRes.data.map((file) => ({
+          setClientFiles(filesRes.data.map((file: any) => ({
             name: file.name,
-            url: `https://crm-server-yd9a.onrender.com/${file.url}`,
+            url: `http://localhost:5000/${file.url}`,
             type: file.name.split('.').pop()?.toLowerCase() || 'file'
           })));
         }
+        setHistory(history_of_client.data);
       } catch (err) {
         console.error("❌ Failed to fetch client:", err);
       }
@@ -109,6 +119,20 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
         ? prev.filter((s) => s !== service)
         : [...prev, service]
     );
+  };
+
+  const handleGSTINUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setGSTIN(e.target.files[0]);
+      setExistingImageUrl1(URL.createObjectURL(e.target.files[0]));
+    }
+  };
+
+  const handlePANUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setPAN(e.target.files[0]);
+      setExistingImageUrl2(URL.createObjectURL(e.target.files[0]));
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,21 +156,21 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
     formData.append("address", client.address || "");
     formData.append("status", status ? "active" : "inactive");
     formData.append("services", JSON.stringify(selectedServices));
-    formData.append("revenue", client.revenue.toString());
+    formData.append("revenue", total.toString());
+    formData.append("service_prices", JSON.stringify(servicePrices));
 
     if (GSTIN) formData.append("gstin_file", GSTIN);
     if (PAN) formData.append("pan_file", PAN);
     
-    // Append new files
     newFiles.forEach(file => {
       formData.append("files", file);
     });
 
     try {
       await axios.patch(
-        `https://crm-server-yd9a.onrender.com/edit_client/${clientId}`,
+        `http://localhost:5000/edit_client/${clientId}`,
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        { headers: { "Content-Type": "multipart/form-data" }}
       );
       onClose();
     } catch (error) {
@@ -182,6 +206,10 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
     );
   }
 
+  const total = Object.entries(servicePrices)
+    .filter(([service]) => selectedServices.includes(service))
+    .reduce((sum, [_, price]) => sum + (parseFloat(price) || 0), 0);
+
   return (
     <div className="relative max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-md animate-fade-down">
       <button
@@ -202,7 +230,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
         {/* Basic Information Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label>Company Name*</label>
+            <label>Company Name</label>
             <input
               value={client.company_name}
               onChange={(e) => handleChange("company_name", e.target.value)}
@@ -211,7 +239,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
             />
           </div>
           <div>
-            <label>Business Type*</label>
+            <label>Business Type</label>
             <input
               value={client.business_type}
               onChange={(e) => handleChange("business_type", e.target.value)}
@@ -219,6 +247,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
               required
             />
           </div>
+
           <div>
             <label>PAN</label>
             <input
@@ -226,6 +255,23 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
               onChange={(e) => handleChange("pan", e.target.value)}
               className={inputClass}
             />
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png,.pdf"
+              onChange={handlePANUpload}
+              className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            {existingImageUrl2 && (
+              <div className="mt-2">
+                <p className="text-sm">Current PAN:</p>
+                <img 
+                  src={existingImageUrl2} 
+                  alt="PAN Preview" 
+                  className="h-20 cursor-pointer"
+                  onClick={() => setModalImage(existingImageUrl2)}
+                />
+              </div>
+            )}
           </div>
           <div>
             <label>GSTIN</label>
@@ -234,6 +280,23 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
               onChange={(e) => handleChange("gstin", e.target.value)}
               className={inputClass}
             />
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png,.pdf"
+              onChange={handleGSTINUpload}
+              className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            {existingImageUrl1 && (
+              <div className="mt-2">
+                <p className="text-sm">Current GSTIN:</p>
+                <img 
+                  src={existingImageUrl1} 
+                  alt="GSTIN Preview" 
+                  className="h-20 cursor-pointer"
+                  onClick={() => setModalImage(existingImageUrl1)}
+                />
+              </div>
+            )}
           </div>
           <div>
             <label>Owner Name</label>
@@ -265,8 +328,8 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
             <label>Total Revenue (₹)</label>
             <input
               type="number"
-              value={client.revenue ?? 0}
-              onChange={(e) => handleChange("revenue", e.target.value)}
+              value={total}
+              readOnly
               className={inputClass}
             />
           </div>
@@ -303,46 +366,64 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
             <label className="block mb-1 text-sm font-medium text-gray-900">
               Services
             </label>
-            <div className="flex flex-wrap gap-3">
-              {["INCORP", "GST", "ITR", "MCA", "IP"].map((service) => (
-                <button
-                  key={service}
-                  type="button"
-                  onClick={() => toggleService(service)}
-                  className={`rounded-md py-2 px-4 text-sm border transition-all ${
-                    selectedServices.includes(service)
-                      ? "bg-slate-800 text-white"
-                      : "bg-white text-slate-600 border-gray-300 hover:bg-slate-800 hover:text-white"
-                  }`}
-                >
-                  {service}
-                </button>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap gap-2">
+                {["INCORP", "GST", "ITR", "MCA", "IP","ISO","FSSAI"].map((service) => (
+                  <button
+                    key={service}
+                    type="button"
+                    onClick={() => toggleService(service)}
+                    className={`rounded-md py-2 px-4 text-sm border transition-all ${
+                      selectedServices.includes(service)
+                        ? "bg-slate-800 text-white"
+                        : "bg-white text-slate-600 border-gray-300 hover:bg-slate-800 hover:text-white"
+                    }`}
+                  >
+                    {service}
+                  </button>
+                ))}
+              </div>
+              
+              {selectedServices.map((service) => (
+                <div key={service} className="flex items-center gap-2">
+                  <span className="w-20">{service}:</span>
+                  <input
+                    type="number"
+                    value={servicePrices[service] || ""}
+                    onChange={(e) =>
+                      setServicePrices((prev) => ({
+                        ...prev,
+                        [service]: e.target.value,
+                      }))
+                    }
+                    placeholder="Price"
+                    className="border rounded px-3 py-1 w-40"
+                  />
+                  <span>₹</span>
+                </div>
               ))}
             </div>
           </div>
-         {client.services.includes("INCORP") && (
-  <div className="bg-sky-900 p-5 rounded-xl text-white ">  
-    <h2>Incorporation Details</h2>
-    <ul>
-      {client.shareholders.map((s, idx) => (
-        <li key={idx}>
-          {s.name} - {s.percent}%
-        </li>
-      ))}
-    </ul>
-    <p>ROC: {client.roc}</p>
-  </div>
-)}
-
         </div>
 
+        {Array.isArray(client.shareholders) && client.shareholders.length > 0 && (
+          <div className="bg-sky-900 p-5 rounded-xl text-white">
+            <h2 className="text-lg font-semibold mb-2">Incorporation Details</h2>
+            <ul className="mb-2 list-disc list-inside">
+              {client.shareholders.map((s, idx) => (
+                <li key={idx}>
+                  {s.name} - {s.percent}%
+                </li>
+              ))}
+            </ul>
+            {client.roc && <p>ROC: {client.roc}</p>}
+          </div>
+        )}
 
         {/* Document Upload Section */}
         <div className="mt-6">
           <h3 className="text-lg font-medium mb-4">Client Documents</h3>
           
-          {/* GSTIN and PAN Upload */}
-        
           {/* All Client Files */}
           <div className="mb-8">
             <h4 className="text-md font-medium mb-3">All Documents</h4>
@@ -356,9 +437,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
                           src={file.url}
                           alt={file.name}
                           className="w-full h-32 object-contain mb-2 cursor-pointer"
-                          onClick={() => {setModalImage(file.url) 
-                            console.log(file.url)
-                          console.log(clientFiles)}}
+                          onClick={() => setModalImage(file.url)}
                         />
                       ) : (
                         <div className="w-full h-32 flex items-center justify-center text-4xl bg-gray-100 mb-2">

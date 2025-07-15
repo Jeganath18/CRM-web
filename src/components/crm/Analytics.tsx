@@ -1,116 +1,184 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { TrendingUp, DollarSign, Users, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { Button } from "../ui/button";
+import jsPDF from "jspdf";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import autoTable from "jspdf-autotable";
 
 export const Analytics = () => {
-    const [serviceData,setserviceData] = useState([]);
-    const [dashData,setdashData] = useState([]);
-  const [revenueData,setrevenueData] = useState([]);
+  const [serviceData, setServiceData] = useState<any[]>([]);
+  const [dashData, setDashData] = useState<any>({});
+  const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [teamPerformanceData, setTeamPerformanceData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [metrics, setMetrics] = useState<any>({});
+  const [leadMetrics, setLeadMetrics] = useState<any>({
+    total_leads: 0,
+    converted_leads: 0,
+    dropped_leads: 0,
+    new_leads: 0,
+  });
+  const [taxData, setTaxData] = useState<any[]>([]);
 
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [service, revenue, dashrevenue, teamperformance] = await Promise.all([
+          axios.get("http://localhost:5000/get_analytics"),
+          axios.get("http://localhost:5000/get_revenue_analytics"),
+          axios.get("http://localhost:5000/get_dashboard_analytics"),
+          axios.get("http://localhost:5000/team_performance"),
+        ]);
 
- 
-useEffect(() => {
-  async function fetchData() {
-    try {
-      const [service, revenue, dashrevenue, teamperformance] = await Promise.all([
-        axios.get("https://crm-server-yd9a.onrender.com/get_analytics"),
-        axios.get("https://crm-server-yd9a.onrender.com/get_revenue_analytics"),
-        axios.get("https://crm-server-yd9a.onrender.com/get_dashboard_analytics"),
-        axios.get("https://crm-server-yd9a.onrender.com/team_performance"),
-      ]);
+        const dash = dashrevenue.data;
+        setDashData(dash);
 
-      setteamPerformanceData([
-        { team: "INCORP Team", target: teamperformance.data[4].total_services, completed: teamperformance.data[4].completed_services, efficiency: teamperformance.data[4].efficiency },
-        { team: "GST Team", target: teamperformance.data[0].total_services, completed: teamperformance.data[0].completed_services, efficiency: teamperformance.data[0].efficiency },
-        { team: "ITR Team", target: teamperformance.data[1].total_services, completed: teamperformance.data[1].completed_services, efficiency: teamperformance.data[1].efficiency },
-        { team: "MCA Team", target: teamperformance.data[3].total_services, completed: teamperformance.data[3].completed_services, efficiency: teamperformance.data[3].efficiency },
-        { team: "IP Team", target: teamperformance.data[2].total_services, completed: teamperformance.data[2].completed_services, efficiency: teamperformance.data[2].efficiency }
-      ]);
+        // Extract and map lead & tax data
+        const lead = dash.leadData || {};
+        const totalLeads = (lead.converted_leads || 0) + (lead.dropped_leads || 0) + (lead.new_leads || 0);
+        setLeadMetrics({
+          total_leads: totalLeads,
+          converted_leads: lead.converted_leads || 0,
+          dropped_leads: lead.dropped_leads || 0,
+          new_leads: lead.new_leads || 0,
+        });
 
-      setrevenueData(revenue.data);
-      setdashData(dashrevenue.data);
-      setserviceData([
-        { name: "Incorporation", value: service.data[0].count, color: "#8884d8" },
-        { name: "GST Fillings", value: service.data[1].count, color: "#82ca9d" },
-        { name: "Trademark/IP", value: service.data[2].count, color: "#ffc658" },
-        { name: "ITR", value: service.data[3].count, color: "#ff7c7c" },
-        { name: "MCA", value: service.data[4].count, color: "#ff7c1c" }
-      ]);
+        setTaxData(dash.taxData || []);
+        console.log(dash.taxData);
+        setTeamPerformanceData([
+          { team: "INCORP Team", target: teamperformance.data[4].total_services, completed: teamperformance.data[4].completed_services, efficiency: teamperformance.data[4].efficiency },
+          { team: "GST Team", target: teamperformance.data[0].total_services, completed: teamperformance.data[0].completed_services, efficiency: teamperformance.data[0].efficiency },
+          { team: "ITR Team", target: teamperformance.data[1].total_services, completed: teamperformance.data[1].completed_services, efficiency: teamperformance.data[1].efficiency },
+          { team: "MCA Team", target: teamperformance.data[3].total_services, completed: teamperformance.data[3].completed_services, efficiency: teamperformance.data[3].efficiency },
+          { team: "IP Team", target: teamperformance.data[2].total_services, completed: teamperformance.data[2].completed_services, efficiency: teamperformance.data[2].efficiency }
+        ]);
 
-      setLoading(false); // all done
-    } catch (error) {
-      console.error("Error fetching analytics:", error);
-      setLoading(false);
+        setRevenueData(revenue.data);
+        setServiceData([
+          { name: "Incorporation", value: service.data[0].count, color: "#8884d8" },
+          { name: "GST Fillings", value: service.data[1].count, color: "#82ca9d" },
+          { name: "Trademark/IP", value: service.data[2].count, color: "#ffc658" },
+          { name: "ITR", value: service.data[3].count, color: "#ff7c7c" },
+          { name: "MCA", value: service.data[4].count, color: "#ff7c1c" }
+        ]);
+
+        await fetchMetrics();
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching analytics:", error);
+        setLoading(false);
+      }
     }
-  }
 
-  fetchData();
-}, []);
+    fetchData();
+  }, []);
 
+  const fetchMetrics = async () => {
+    if (!startDate || !endDate) return;
 
+    try {
+      const res = await axios.get("http://localhost:5000/report_metrics", {
+        params: {
+          startDate: startDate.toISOString().split("T")[0],
+          endDate: endDate.toISOString().split("T")[0],
+        },
+      });
+      setMetrics(res.data);
+    } catch (err) {
+      console.error("Failed to fetch metrics:", err);
+    }
+  };
 
+  const generatePDFReport = async () => {
+    await fetchMetrics();
+    if (!metrics) return;
 
-  const [teamPerformanceData,setteamPerformanceData] = useState([]);
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Analytics Report", 14, 20);
+
+    if (startDate && endDate) {
+      doc.setFontSize(10);
+      doc.text(`Reporting Period: ${startDate.toISOString().split("T")[0]} - ${endDate.toISOString().split("T")[0]}`, 14, 28);
+    }
+
+    let y = 36;
+
+    autoTable(doc, {
+      startY: y,
+      head: [["Metric", "Value"]],
+      body: [
+        ["Total Leads", leadMetrics.total_leads],
+        ["Converted Leads", leadMetrics.converted_leads],
+        ["Dropped Leads", leadMetrics.dropped_leads],
+        ["New Leads", leadMetrics.new_leads],
+      ]
+    });
+
+    doc.save(`Analytics_Report_${new Date().toISOString().split("T")[0]}.pdf`);
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      {/* Header with filters */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-gray-900">Analytics & Reports</h1>
-        <div className="text-sm text-gray-500">
-          Performance insights for your business
+        <div className="flex items-center gap-3">
+          <DatePicker selected={startDate} onChange={setStartDate} placeholderText="Start Date" className="border px-2 py-1 rounded" />
+          <DatePicker selected={endDate} onChange={setEndDate} placeholderText="End Date" className="border px-2 py-1 rounded" />
+          <Button variant="outline" onClick={generatePDFReport}>Fetch Report</Button>
         </div>
       </div>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="animate-scale-in">
+        <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-green-600">₹{dashData[0]?.total_revenue}</p>
+                <p>Total Revenue</p>
+                <p className="text-2xl text-green-600">₹{dashData.total_revenue}</p>
               </div>
-              <DollarSign className="h-8 w-8 text-green-500" />
+              <DollarSign className="text-green-500 w-8 h-8" />
             </div>
           </CardContent>
         </Card>
-
-        <Card className="animate-scale-in" style={{ animationDelay: '100ms' }}>
+        <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Active Clients</p>
-                <p className="text-2xl font-bold text-blue-600">{dashData[0]?.active_clients}</p>
+                <p>Active Clients</p>
+                <p className="text-2xl text-blue-600">{dashData.active_clients}</p>
               </div>
-              <Users className="h-8 w-8 text-blue-500" />
+              <Users className="text-blue-500 w-8 h-8" />
             </div>
           </CardContent>
         </Card>
-
-        <Card className="animate-scale-in" style={{ animationDelay: '200ms' }}>
+        <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Services Completed</p>
-                <p className="text-2xl font-bold text-purple-600">{dashData[0]?.services_completed}</p>
+                <p>Services Completed</p>
+                <p className="text-2xl text-purple-600">{dashData.services_completed}</p>
               </div>
-              <FileText className="h-8 w-8 text-purple-500" />
+              <FileText className="text-purple-500 w-8 h-8" />
             </div>
           </CardContent>
         </Card>
-
-        <Card className="animate-scale-in" style={{ animationDelay: '300ms' }}>
+        <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Efficiency Rate</p>
-                <p className="text-2xl font-bold text-yellow-600">{dashData[0]?.efficiency_rate}%</p>
+                <p>Efficiency Rate</p>
+                <p className="text-2xl text-yellow-600">{dashData.efficiency_rate}%</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-yellow-500" />
+              <TrendingUp className="text-yellow-500 w-8 h-8" />
             </div>
           </CardContent>
         </Card>
@@ -119,7 +187,7 @@ useEffect(() => {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Trend */}
-        <Card className="animate-scale-in">
+        <Card>
           <CardHeader>
             <CardTitle>Revenue Trend</CardTitle>
           </CardHeader>
@@ -129,13 +197,61 @@ useEffect(() => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip formatter={(value) => [`₹${value.toLocaleString()}`, 'Revenue']} />
-                <Line type="monotone" dataKey="revenue" stroke="#8884d8" strokeWidth={2} />
+                <Tooltip formatter={(value) => [`₹${value}`, "Revenue"]} />
+                <Line type="monotone" dataKey="revenue" stroke="#8884d8" />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
+        {/* Lead Conversion Pie */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Lead Conversion Metrics</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie 
+                  data={[
+                    { name: "Converted", value: leadMetrics.converted_leads }, 
+                    { name: "Dropped", value: leadMetrics.dropped_leads }, 
+                    { name: "New", value: leadMetrics.new_leads }
+                  ]} 
+                  cx="50%" 
+                  cy="50%" 
+                  outerRadius={80} 
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} 
+                  dataKey="value"
+                >
+                  <Cell fill="#28a745" />
+                  <Cell fill="#dc3545" />
+                  <Cell fill="#ffc107" />
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* GST/ITR Filing Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Monthly GST/ITR Filing Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={taxData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="gst" fill="#82ca9d" name="GST Filings" />
+                <Bar dataKey="itr" fill="#8884d8" name="ITR Filings" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        
         {/* Service Distribution */}
         <Card className="animate-scale-in">
           <CardHeader>
@@ -192,7 +308,7 @@ useEffect(() => {
               <h3 className="font-semibold text-gray-900 mb-2">{team.team}</h3>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">target:</span>
+                  <span className="text-gray-600">Completed:</span>
                   <span className="font-medium">{team.completed}</span>
                 </div>
                 <div className="flex justify-between text-sm">

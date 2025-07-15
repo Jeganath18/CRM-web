@@ -51,8 +51,8 @@ export const ClientManagement = ({userName,userRole}:clientprops) => {
       setLoading(true);
       setError(null);
 const res = userRole === "account_manager"
-  ? await axios.get(`https://crm-server-yd9a.onrender.com/clients/${userName}`) 
-  : await axios.get("https://crm-server-yd9a.onrender.com/clients");
+  ? await axios.get(`http://localhost:5000/clients/${userName}`) 
+  : await axios.get("http://localhost:5000/clients");
       
       // Handle services parsing - they might be stored as JSON strings
       const processedClients = res.data.map((client) => ({
@@ -103,7 +103,7 @@ const res = userRole === "account_manager"
     if (!deleteClientId) return;
     setDeleting(true);
     try {
-      await axios.delete(`https://crm-server-yd9a.onrender.com/delete_client/${deleteClientId}`);
+      await axios.delete(`http://localhost:5000/delete_client/${deleteClientId}`);
       setClients((prev) => prev.filter((client) => client.id !== deleteClientId));
       setShowDeleteModal(false);
       setDeleteClientId(null);

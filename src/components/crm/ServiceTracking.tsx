@@ -10,7 +10,7 @@ import {
   CheckCircle,
   AlertCircle,
   Search,
-  Trash2
+  Trash2,
 } from "lucide-react";
 import {
   Dialog,
@@ -22,18 +22,20 @@ import {
 import axios from "axios";
 import { Input } from "@/components/ui/input";
 
-interface clientprops{
+interface clientprops {
   userRole: string | null;
   userName: string | null;
 }
 
-export const ServiceTracking = ({userName,userRole}:clientprops) => {
+export const ServiceTracking = ({ userName, userRole }: clientprops) => {
   const [services, setServices] = useState({
     incorp: [],
     gst: [],
     itr: [],
     mca: [],
     ip: [],
+    iso: [],
+    fssai: [],
   });
 
   const [activeTab, setActiveTab] = useState("incorp");
@@ -42,18 +44,21 @@ export const ServiceTracking = ({userName,userRole}:clientprops) => {
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const [showdeleteDialog, setShowdeleteDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [deleteid,setdeleteid]=useState(0);
-  const [deletekey,setdeletekey]=useState("");
+  const [deleteid, setdeleteid] = useState(0);
+  const [deletekey, setdeletekey] = useState("");
 
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const res = userRole === "account_manager"
-  ? await axios.get(`https://crm-server-yd9a.onrender.com/get_all_services/${userName}`)
-  : await axios.get("https://crm-server-yd9a.onrender.com/get_all_services");
+        const res =
+          userRole === "account_manager"
+            ? await axios.get(
+                `http://localhost:5000/get_all_services/${userName}`
+              )
+            : await axios.get("http://localhost:5000/get_all_services");
         const rows = res.data;
 
-        const grouped = { incorp: [], gst: [], itr: [], mca: [], ip: [] };
+        const grouped = { incorp: [], gst: [], itr: [], mca: [], ip: [], iso: [], fssai: [] };
 
         for (const row of rows) {
           const entry = {
@@ -139,11 +144,11 @@ export const ServiceTracking = ({userName,userRole}:clientprops) => {
     );
   };
 
-  const delete_service = (client_id,service_type)=>{
+  const delete_service = (client_id, service_type) => {
     setShowdeleteDialog(true);
     setdeleteid(client_id);
     setdeletekey(service_type);
-  }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -166,12 +171,14 @@ export const ServiceTracking = ({userName,userRole}:clientprops) => {
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="incorp">Incorporation</TabsTrigger>
           <TabsTrigger value="gst">GST Filing</TabsTrigger>
           <TabsTrigger value="itr">ITR Processing</TabsTrigger>
           <TabsTrigger value="mca">MCA Compliance</TabsTrigger>
           <TabsTrigger value="ip">IP Services</TabsTrigger>
+          <TabsTrigger value="iso">ISO</TabsTrigger>
+          <TabsTrigger value="fssai">FSSAI</TabsTrigger>
         </TabsList>
 
         {Object.entries(services).map(([key, serviceList]) => (
@@ -200,11 +207,11 @@ export const ServiceTracking = ({userName,userRole}:clientprops) => {
                         <Badge className={getStatusColor(service.status)}>
                           {service.status}
                         </Badge>
-                        {service.progress<100 && 
-                        <Badge className={getPriorityColor(service.priority)}>
-                          {service.priority}
-                        </Badge>
-                        }           
+                        {service.progress < 100 && (
+                          <Badge className={getPriorityColor(service.priority)}>
+                            {service.priority}
+                          </Badge>
+                        )}
                       </div>
                     </div>
 
@@ -238,7 +245,7 @@ export const ServiceTracking = ({userName,userRole}:clientprops) => {
                           size="sm"
                           variant="outline"
                           className="text-red-600 hover:text-red-700"
-                          onClick={()=>delete_service(service.id,key)}
+                          onClick={() => delete_service(service.id, key)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -279,10 +286,13 @@ export const ServiceTracking = ({userName,userRole}:clientprops) => {
           setShowViewDialog(open);
           if (!open && selectedService) {
             axios
-              .patch(`https://crm-server-yd9a.onrender.com/update_service/${selectedService.id}`, {
-                assignedTo: selectedService.assignedTo,
-                deadline: selectedService.deadline,
-              })
+              .patch(
+                `http://localhost:5000/update_service/${selectedService.id}`,
+                {
+                  assignedTo: selectedService.assignedTo,
+                  deadline: selectedService.deadline,
+                }
+              )
               .then(() => {
                 console.log("✅ Service updated successfully");
               })
@@ -366,7 +376,7 @@ export const ServiceTracking = ({userName,userRole}:clientprops) => {
                   else if (daysLeft < 15) priority = "medium";
 
                   await axios.patch(
-                    `https://crm-server-yd9a.onrender.com/update_service/${selectedService.id}`,
+                    `http://localhost:5000/update_service/${selectedService.id}`,
                     {
                       assignedTo: selectedService.assignedTo,
                       deadline: selectedService.deadline,
@@ -442,10 +452,12 @@ export const ServiceTracking = ({userName,userRole}:clientprops) => {
                 };
                 try {
                   await axios.patch(
-                    `https://crm-server-yd9a.onrender.com/update_status/${selectedService.id}`,
+                    `http://localhost:5000/update_status/${selectedService.id}`,
                     {
+                      id: selectedService.id,
                       status: selectedService.status,
                       progress: progressMap[selectedService.status],
+                      service_type: activeTab,
                     }
                   );
                   setServices((prev) => {
@@ -457,6 +469,7 @@ export const ServiceTracking = ({userName,userRole}:clientprops) => {
                     );
                     return updated;
                   });
+                  console.log(selectedService.id);
                   setShowUpdateDialog(false);
                 } catch (err) {
                   console.log("Error Updating status", err);
@@ -470,46 +483,44 @@ export const ServiceTracking = ({userName,userRole}:clientprops) => {
       </Dialog>
 
       {/* Delete Dialog */}
-<Dialog open={showdeleteDialog} onOpenChange={setShowdeleteDialog}>
-  <DialogContent>
-              <DialogHeader>
+      <Dialog open={showdeleteDialog} onOpenChange={setShowdeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
             <DialogTitle>Delete Service</DialogTitle>
-            <DialogDescription>
-             This action cannot be undone!
-            </DialogDescription>
+            <DialogDescription>This action cannot be undone!</DialogDescription>
           </DialogHeader>
-    
-<Button
-  className="w-full mt-2"
-  onClick={async () => {
-    try {
-      await axios.delete("https://crm-server-yd9a.onrender.com/delete_service", {
-        data: {
-          client_id: deleteid,
-          section: deletekey,
-        },
-      });
 
-      setServices((prev) => {
-        const updated = { ...prev };
-        updated[deletekey] = updated[deletekey].filter(
-          (service) => service.id !== deleteid // ✅ Use `id`, not `client_id`
-        );
-        return updated;
-      });
+          <Button
+            className="w-full mt-2"
+            onClick={async () => {
+              try {
+                await axios.delete("http://localhost:5000/delete_service", {
+                  data: {
+                    client_id: deleteid,
+                    section: deletekey,
+                  },
+                });
 
-      setShowdeleteDialog(false);
-      setdeleteid(0);
-      setdeletekey("");
-    } catch (err) {
-      console.log("Error deleting service", err);
-    }
-  }}
->
-  Delete Service
-</Button>
-  </DialogContent>
-</Dialog>
+                setServices((prev) => {
+                  const updated = { ...prev };
+                  updated[deletekey] = updated[deletekey].filter(
+                    (service) => service.id !== deleteid // ✅ Use `id`, not `client_id`
+                  );
+                  return updated;
+                });
+
+                setShowdeleteDialog(false);
+                setdeleteid(0);
+                setdeletekey("");
+              } catch (err) {
+                console.log("Error deleting service", err);
+              }
+            }}
+          >
+            Delete Service
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

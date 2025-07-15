@@ -13,12 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Phone,
   Mail,
@@ -36,7 +31,7 @@ import {
   CheckCircle2,
   Ban,
   UserPlus,
-  CircleOff
+  CircleOff,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -115,7 +110,7 @@ export const LeadManagement = () => {
 
   const getClients = async () => {
     try {
-      const res = await axios.get("https://crm-server-yd9a.onrender.com/get_client_leads");
+      const res = await axios.get("http://localhost:5000/get_client_leads");
       const mappedLeads = res.data.map((lead: LeadFromServer) => ({
         id: lead.id,
         name: lead.company_name,
@@ -129,8 +124,13 @@ export const LeadManagement = () => {
         assignedTo: lead.assigned_to || "",
         stage_status: lead.stage_status?.toLowerCase() || "new",
       }));
-      
-      const grouped: LeadsState = { new: [], contact: [], converted: [], dropped: [] };
+
+      const grouped: LeadsState = {
+        new: [],
+        contact: [],
+        converted: [],
+        dropped: [],
+      };
       mappedLeads.forEach((lead: Lead) => {
         const stage = lead.stage_status as keyof LeadsState;
         if (grouped[stage]) {
@@ -170,11 +170,18 @@ export const LeadManagement = () => {
 
     try {
       if (editId !== null) {
-        await axios.put(`https://crm-server-yd9a.onrender.com/edit_lead/${editId}`, payload);
+        await axios.put(`http://localhost:5000/edit_lead/${editId}`, payload);
       } else {
-        await axios.post("https://crm-server-yd9a.onrender.com/add-lead", payload);
+        await axios.post("http://localhost:5000/add-lead", payload);
       }
-      setFormData({ company: "", owner: "", email: "", phone: "", services: [], assignedTo: "" });
+      setFormData({
+        company: "",
+        owner: "",
+        email: "",
+        phone: "",
+        services: [],
+        assignedTo: "",
+      });
       setEditId(null);
       setShowAddModal(false);
       getClients();
@@ -192,11 +199,11 @@ export const LeadManagement = () => {
 
       try {
         console.log("About to call PATCH...");
-        console.log("URL:", `https://crm-server-yd9a.onrender.com/edit_lead/${leadId}`);
+        console.log("URL:", `http://localhost:5000/edit_lead/${leadId}`);
         console.log("Payload:", { stage_status: nextStage });
 
         const res = await axios.patch(
-          `https://crm-server-yd9a.onrender.com/edit_lead/${leadId}`,
+          `http://localhost:5000/edit_lead/${leadId}`,
           { stage_status: nextStage },
           { timeout: 10000 }
         );
@@ -215,8 +222,10 @@ export const LeadManagement = () => {
           const updatedLeads = { ...prev };
           const currentStageKey = currentStage as keyof LeadsState;
           const nextStageKey = nextStage as keyof LeadsState;
-          
-          const leadToMove = updatedLeads[currentStageKey]?.find((lead) => lead.id === leadId);
+
+          const leadToMove = updatedLeads[currentStageKey]?.find(
+            (lead) => lead.id === leadId
+          );
 
           if (!leadToMove) {
             console.warn("Lead not found in:", currentStage);
@@ -229,14 +238,18 @@ export const LeadManagement = () => {
 
           const newState = {
             ...updatedLeads,
-            [currentStageKey]: updatedLeads[currentStageKey].filter((lead) => lead.id !== leadId),
-            [nextStageKey]: [...(updatedLeads[nextStageKey] || []), updatedLead],
+            [currentStageKey]: updatedLeads[currentStageKey].filter(
+              (lead) => lead.id !== leadId
+            ),
+            [nextStageKey]: [
+              updatedLead,
+              ...(updatedLeads[nextStageKey] || []),
+            ],
           };
 
           console.log("New state:", newState);
           return newState;
         });
-
       } catch (err) {
         console.error("PATCH failed:", err);
         console.error("Error details:", err.response?.data);
@@ -247,14 +260,14 @@ export const LeadManagement = () => {
   };
 
   const scrollToTop = () => {
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-};
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
-useEffect(() => {
-  if (showDeleteModal) {
-    scrollToTop();
-  }
-}, [showDeleteModal]);
+  useEffect(() => {
+    if (showDeleteModal) {
+      scrollToTop();
+    }
+  }, [showDeleteModal]);
 
   const handleEdit = (lead: Lead) => {
     setFormData({
@@ -274,7 +287,7 @@ useEffect(() => {
     if (!deleteleadId) return;
     setDeleting(true);
     try {
-      await axios.delete(`https://crm-server-yd9a.onrender.com/delete_lead/${deleteleadId}`);
+      await axios.delete(`http://localhost:5000/delete_lead/${deleteleadId}`);
       setShowDeleteModal(false);
       setDeleteleadId(null);
       setDropdownOpen(null);
@@ -286,10 +299,10 @@ useEffect(() => {
     }
   };
 
-   const droplead = async () => {
+  const droplead = async () => {
     if (!dropleadId) return;
     try {
-      await axios.patch(`https://crm-server-yd9a.onrender.com/drop_lead/${dropleadId}`);
+      await axios.patch(`http://localhost:5000/drop_lead/${dropleadId}`);
       setShowDropModal(false);
       setDropleadId(null);
       setDropdownOpen(null);
@@ -297,7 +310,7 @@ useEffect(() => {
       console.log(dropleadId);
     } catch (error) {
       alert("❌ Failed to delete client.");
-    } 
+    }
   };
 
   const isFollowUpDue = (lastContact: string) => {
@@ -311,47 +324,47 @@ useEffect(() => {
   };
 
   const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = async (event) => {
-    const data = new Uint8Array(event.target?.result as ArrayBuffer);
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const jsonData: ExcelLeadRow[] = XLSX.utils.sheet_to_json(worksheet);
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const data = new Uint8Array(event.target?.result as ArrayBuffer);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData: ExcelLeadRow[] = XLSX.utils.sheet_to_json(worksheet);
 
-    // Optional: show a toast message
-    const toastId = toast.loading("Uploading leads...");
+      // Optional: show a toast message
+      const toastId = toast.loading("Uploading leads...");
 
-    try {
-      for (const row of jsonData) {
-        const payload = {
-          company_name: row.Company || "",
-          owner_name: row.Owner || "",
-          email: row.Email || "",
-          phone: row.Phone || "",
-          services: row.Services ? row.Services.split(",") : [],
-          last_contact: row.LastContact || new Date().toISOString().slice(0, 10),
-          assigned_to: row.AssignedTo || "",
-          stage_status: "new",
-        };
+      try {
+        for (const row of jsonData) {
+          const payload = {
+            company_name: row.Company || "",
+            owner_name: row.Owner || "",
+            email: row.Email || "",
+            phone: row.Phone || "",
+            services: row.Services ? row.Services.split(",") : [],
+            last_contact:
+              row.LastContact || new Date().toISOString().slice(0, 10),
+            assigned_to: row.AssignedTo || "",
+            stage_status: "new",
+          };
 
-        await axios.post("https://crm-server-yd9a.onrender.com/add-lead", payload);
+          await axios.post("http://localhost:5000/add-lead", payload);
+        }
+
+        toast.success("✅ All leads uploaded successfully!", { id: toastId });
+        getClients(); // Refresh list after upload
+      } catch (err) {
+        toast.error("❌ Failed to upload some leads.", { id: toastId });
+        console.error(err);
       }
+    };
 
-      toast.success("✅ All leads uploaded successfully!", { id: toastId });
-      getClients(); // Refresh list after upload
-    } catch (err) {
-      toast.error("❌ Failed to upload some leads.", { id: toastId });
-      console.error(err);
-    }
+    reader.readAsArrayBuffer(file);
   };
-
-  reader.readAsArrayBuffer(file);
-};
-
 
   const filteredLeads = Object.fromEntries(
     Object.entries(leads).map(([stage, list]) => [
@@ -370,7 +383,7 @@ useEffect(() => {
     setShowDeleteModal(true);
   };
 
-    const confirmDrop = (id: number) => {
+  const confirmDrop = (id: number) => {
     setDropleadId(id);
     setShowDropModal(true);
   };
@@ -387,59 +400,69 @@ useEffect(() => {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Lead Management</h1>
         <div className="flex gap-4">
-          <Button onClick={() => setShowAddModal(true)} className="bg-blue-600 hover:bg-blue-700">
+          <Button
+            onClick={() => setShowAddModal(true)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
             <Plus className="h-4 w-4 mr-2" /> Add Lead
           </Button>
           <Button asChild variant="outline">
             <label className="flex items-center gap-1 cursor-pointer">
               <Upload className="h-4 w-4" /> Upload Excel
-              <input type="file" accept=".xlsx, .xls" onChange={handleExcelUpload} className="hidden" />
+              <input
+                type="file"
+                accept=".xlsx, .xls"
+                onChange={handleExcelUpload}
+                className="hidden"
+              />
             </label>
           </Button>
         </div>
       </div>
 
-<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-  {[
-    {
-      label: "New Leads",
-      count: stageStats.new,
-      color: "blue",
-      icon: <UserPlus className="h-8 w-8 text-blue-500" />,
-    },
-    {
-      label: "Contacted",
-      count: stageStats.contact,
-      color: "yellow",
-      icon: <PhoneCall className="h-8 w-8 text-yellow-500" />,
-    },
-    {
-      label: "Converted",
-      count: stageStats.converted,
-      color: "green",
-      icon: <CheckCircle2 className="h-8 w-8 text-green-500" />,
-    },
-    {
-      label: "Dropped",
-      count: stageStats.dropped,
-      color: "red",
-      icon: <Ban className="h-8 w-8 text-red-500" />,
-    },
-  ].map(({ label, count, color, icon }) => (
-    <Card key={label} className="animate-scale-in">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-600">{label}</p>
-            <p className={`text-2xl font-bold text-${color}-600`}>{count}</p>
-          </div>
-          {/* 👇 Renders the icon */}
-          {icon}
-        </div>
-      </CardContent>
-    </Card>
-  ))}
-</div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {[
+          {
+            label: "New Leads",
+            count: stageStats.new,
+            color: "blue",
+            icon: <UserPlus className="h-8 w-8 text-blue-500" />,
+          },
+          {
+            label: "Contacted",
+            count: stageStats.contact,
+            color: "yellow",
+            icon: <PhoneCall className="h-8 w-8 text-yellow-500" />,
+          },
+          {
+            label: "Converted",
+            count: stageStats.converted,
+            color: "green",
+            icon: <CheckCircle2 className="h-8 w-8 text-green-500" />,
+          },
+          {
+            label: "Dropped",
+            count: stageStats.dropped,
+            color: "red",
+            icon: <Ban className="h-8 w-8 text-red-500" />,
+          },
+        ].map(({ label, count, color, icon }) => (
+          <Card key={label} className="animate-scale-in">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">{label}</p>
+                  <p className={`text-2xl font-bold text-${color}-600`}>
+                    {count}
+                  </p>
+                </div>
+                {/* 👇 Renders the icon */}
+                {icon}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       <Card>
         <CardContent className="p-6">
@@ -458,46 +481,66 @@ useEffect(() => {
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editId !== null ? "Edit Lead" : "Add New Lead"}</DialogTitle>
+            <DialogTitle>
+              {editId !== null ? "Edit Lead" : "Add New Lead"}
+            </DialogTitle>
             <DialogDescription>
-              {editId !== null ? "Update the lead information below." : "Add a new lead to the system."}
+              {editId !== null
+                ? "Update the lead information below."
+                : "Add a new lead to the system."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <Input 
-              placeholder="Company Name" 
-              value={formData.company} 
-              onChange={(e) => setFormData({ ...formData, company: e.target.value })} 
+            <Input
+              placeholder="Company Name"
+              value={formData.company}
+              onChange={(e) =>
+                setFormData({ ...formData, company: e.target.value })
+              }
             />
-            <Input 
-              placeholder="Owner Name" 
-              value={formData.owner} 
-              onChange={(e) => setFormData({ ...formData, owner: e.target.value })} 
+            <Input
+              placeholder="Owner Name"
+              value={formData.owner}
+              onChange={(e) =>
+                setFormData({ ...formData, owner: e.target.value })
+              }
             />
-            <Input 
-              placeholder="Email" 
-              value={formData.email} 
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
+            <Input
+              placeholder="Email"
+              value={formData.email}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
             />
-            <Input 
-              placeholder="Phone" 
-              value={formData.phone} 
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
+            <Input
+              placeholder="Phone"
+              value={formData.phone}
+              onChange={(e) =>
+                setFormData({ ...formData, phone: e.target.value })
+              }
             />
-            <Input 
-              placeholder="Assigned To" 
-              value={formData.assignedTo} 
-              onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })} 
+            <Input
+              placeholder="Assigned To"
+              value={formData.assignedTo}
+              onChange={(e) =>
+                setFormData({ ...formData, assignedTo: e.target.value })
+              }
             />
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">Select Services:</p>
+              <p className="text-sm font-medium text-gray-700 mb-2">
+                Select Services:
+              </p>
               <div className="flex gap-2 flex-wrap">
                 {serviceOptions.map((service) => (
-                  <Button 
-                    key={service} 
-                    type="button" 
-                    variant={formData.services.includes(service) ? "default" : "outline"} 
-                    onClick={() => handleServiceToggle(service)} 
+                  <Button
+                    key={service}
+                    type="button"
+                    variant={
+                      formData.services.includes(service)
+                        ? "default"
+                        : "outline"
+                    }
+                    onClick={() => handleServiceToggle(service)}
                     className="text-sm"
                   >
                     {service}
@@ -505,7 +548,10 @@ useEffect(() => {
                 ))}
               </div>
             </div>
-            <Button onClick={handleFormSubmit} className="w-full mt-4 bg-blue-600 hover:bg-blue-700">
+            <Button
+              onClick={handleFormSubmit}
+              className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
+            >
               {editId !== null ? "Update Lead" : "Save Lead"}
             </Button>
           </div>
@@ -516,7 +562,8 @@ useEffect(() => {
         <TabsList className="grid w-full grid-cols-4">
           {Object.keys(leads).map((stage) => (
             <TabsTrigger key={stage} value={stage}>
-              {stage.charAt(0).toUpperCase() + stage.slice(1)} ({stageStats[stage as keyof typeof stageStats]})
+              {stage.charAt(0).toUpperCase() + stage.slice(1)} (
+              {stageStats[stage as keyof typeof stageStats]})
             </TabsTrigger>
           ))}
         </TabsList>
@@ -524,44 +571,56 @@ useEffect(() => {
         {Object.entries(filteredLeads).map(([stage, leadList]) => (
           <TabsContent key={stage} value={stage} className="space-y-4">
             {leadList.map((lead) => (
-              <Card key={lead.id} className="hover:shadow-lg transition-all duration-300">
+              <Card
+                key={lead.id}
+                className="hover:shadow-lg transition-all duration-300"
+              >
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
                       <Avatar>
                         <AvatarFallback>
-                          {lead.name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+                          {lead.name
+                            ?.split(" ")
+                            .map((n: string) => n[0])
+                            .join("")
+                            .slice(0, 2)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <h3 className="font-semibold text-gray-900">{lead.name}</h3>
+                        <h3 className="font-semibold text-gray-900">
+                          {lead.name}
+                        </h3>
                         <p className="text-sm text-gray-600">{lead.contact}</p>
                       </div>
                     </div>
                     <div className="relative">
-                      <Button variant="ghost" size="icon" onClick={() => toggleDropdown(lead.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => toggleDropdown(lead.id)}
+                      >
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                       {dropdownOpen === lead.id && (
                         <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow-md z-10">
-                          <button 
-                            onClick={() => handleEdit(lead)} 
+                          <button
+                            onClick={() => handleEdit(lead)}
                             className="w-full px-3 py-2 text-sm text-left hover:bg-gray-100 flex items-center gap-2"
                           >
                             <Edit className="h-4 w-4" /> Edit
                           </button>
-                          <button 
-                            onClick={() => confirmDeleteClient(lead.id)} 
+                          <button
+                            onClick={() => confirmDeleteClient(lead.id)}
                             className="w-full px-3 py-2 text-sm text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
                           >
                             <Trash2 className="h-4 w-4" /> Delete
                           </button>
-                            <button 
-                            onClick={() => confirmDrop(lead.id)} 
+                          <button
+                            onClick={() => confirmDrop(lead.id)}
                             className="w-full px-3 py-2 text-sm text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
                           >
-                            <CircleOff className="h-4 w-4"  /> Drop
-                            
+                            <CircleOff className="h-4 w-4" /> Drop
                           </button>
                         </div>
                       )}
@@ -580,15 +639,25 @@ useEffect(() => {
                   </div>
 
                   <div className="mb-2">
-                    <p className="text-sm font-medium text-gray-700">Assigned To:</p>
-                    <p className="text-sm text-gray-800">{lead.assignedTo || "Unassigned"}</p>
+                    <p className="text-sm font-medium text-gray-700">
+                      Assigned To:
+                    </p>
+                    <p className="text-sm text-gray-800">
+                      {lead.assignedTo || "Unassigned"}
+                    </p>
                   </div>
 
                   <div className="mb-4">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Interested Services:</p>
+                    <p className="text-sm font-medium text-gray-700 mb-2">
+                      Interested Services:
+                    </p>
                     <div className="flex flex-wrap gap-1">
                       {lead.services.map((service: string) => (
-                        <Badge key={service} variant="secondary" className="text-xs">
+                        <Badge
+                          key={service}
+                          variant="secondary"
+                          className="text-xs"
+                        >
                           {service}
                         </Badge>
                       ))}
@@ -599,9 +668,13 @@ useEffect(() => {
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <Calendar className="h-4 w-4" />
                       <span>Last Contact: {lead.lastContact.slice(0, 10)}</span>
-                      {isFollowUpDue(lead.lastContact) && (
-                        <Badge className="bg-yellow-100 text-yellow-800 ml-2">Follow-up Due</Badge>
-                      )}
+                      {isFollowUpDue(lead.lastContact) &&
+                        stage !== "converted" &&
+                        stage !== "dropped" && (
+                          <Badge className="bg-yellow-100 text-yellow-800 ml-2">
+                            Follow-up Due
+                          </Badge>
+                        )}
                     </div>
                     <div className="flex space-x-2 mt-4 md:mt-0 md:ml-auto">
                       <a href={`mailto:${lead.email}`}>
@@ -609,14 +682,17 @@ useEffect(() => {
                           <Mail className="h-4 w-4 mr-1" /> Email
                         </Button>
                       </a>
-{lead.stage_status !== "dropped" && lead.stage_status !== "converted" && (
-  <Button 
-    size="sm" 
-    onClick={() => moveToNextStage(lead.id, lead.stage_status)}
-  >
-    Move to Next Stage
-  </Button>
-)}
+                      {lead.stage_status !== "dropped" &&
+                        lead.stage_status !== "converted" && (
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              moveToNextStage(lead.id, lead.stage_status)
+                            }
+                          >
+                            Move to Next Stage
+                          </Button>
+                        )}
                     </div>
                   </div>
                 </CardContent>
@@ -632,7 +708,9 @@ useEffect(() => {
             <h2 className="text-xl font-semibold text-red-600 mb-4">
               Are you sure you want to delete this client lead?
             </h2>
-            <p className="text-sm text-gray-600 mb-6">This action cannot be undone.</p>
+            <p className="text-sm text-gray-600 mb-6">
+              This action cannot be undone.
+            </p>
             <div className="flex justify-center gap-4">
               <button
                 onClick={() => setShowDeleteModal(false)}
@@ -657,7 +735,9 @@ useEffect(() => {
             <h2 className="text-xl font-semibold text-red-600 mb-4">
               Are you sure you want to drop this client lead?
             </h2>
-            <p className="text-sm text-gray-600 mb-6">This action cannot be undone.</p>
+            <p className="text-sm text-gray-600 mb-6">
+              This action cannot be undone.
+            </p>
             <div className="flex justify-center gap-4">
               <button
                 onClick={() => setShowDropModal(false)}
@@ -667,7 +747,8 @@ useEffect(() => {
               </button>
               <button
                 onClick={droplead}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50">
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+              >
                 Drop
               </button>
             </div>
