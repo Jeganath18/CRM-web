@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/crm/Sidebar";
 import { Dashboard } from "@/components/crm/Dashboard";
 import { ClientManagement } from "@/components/crm/ClientManagement";
@@ -15,9 +15,20 @@ interface IndexProps {
   onLogout: () => void;
 }
 
-const Index = ({ userName,userRole, onLogout }: IndexProps) => {
+const Index = ({ userName, userRole, onLogout }: IndexProps) => {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const role = localStorage.getItem("userRole");
+    if (role === "filling_staff") {
+      setActiveTab("services");
+    } else if (role === "sales_staff") {
+      setActiveTab("leads");
+    } else {
+      setActiveTab("dashboard");
+    }
+  }, []);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -28,7 +39,7 @@ const Index = ({ userName,userRole, onLogout }: IndexProps) => {
       case "services":
         return <ServiceTracking userName={userName} userRole={userRole} />;
       case "billing":
-        return <Billing userName={userName} userRole={userRole} />;  
+        return <Billing userName={userName} userRole={userRole} />;
       case "team":
         return <TeamCollaboration />;
       case "leads":
@@ -53,10 +64,8 @@ const Index = ({ userName,userRole, onLogout }: IndexProps) => {
         setIsOpen={setSidebarOpen}
         onLogout={onLogout}
       />
-      <main className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
-        <div className="p-6">
-          {renderContent()}
-        </div>
+      <main className={`flex-1 transition-all duration-300 ${sidebarOpen ? "ml-64" : "ml-16"}`}>
+        <div className="p-6">{renderContent()}</div>
       </main>
     </div>
   );

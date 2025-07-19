@@ -83,14 +83,13 @@ const InvoicePreview = ({
             className="text-black border border-gray-400"
             onClick={onClose ? onClose : () => window.close()}
           >
-            <X className="h-4 w-4 mr-1" />
             Close
           </Button>
           <Button
-            className="bg-blue-600 text-white hover:bg-blue-700"
+            className="hover:bg-[#5c2dbf] bg-[#7b49e7] text-white"
             onClick={reactToPrintFn}
           >
-            🖨️ Print
+             Print
           </Button>
         </div>
 
@@ -123,30 +122,38 @@ const InvoicePreview = ({
             </div>
           </div>
 
-         <table className="w-full text-sm mb-10">
-  <thead className="border-b border-gray-700 text-gray-800">
+<table className="w-full text-sm mb-10">
+  <thead className="text-gray-800">
     <tr>
-      <th className="text-left py-2">Item</th>
+      <th className="text-left py-2">Services</th>
       <th className="text-right py-2 px-0">Price</th>
+      <th className="text-right py-2 px-0">TAX (18%)</th>
+      <th className="text-right py-2 px-0">Total</th>
     </tr>
   </thead>
   <tbody>
-{Array.isArray(services) && Array.isArray(amount) &&
-  services.map((service, idx) => (
-    <tr key={idx} className="border-b border-gray-800">
-      <td className="py-3 text-left text-gray-800">
-        {service.toUpperCase()}
-      </td>
-      <td className="py-3 text-right text-gray-800">₹{amount[idx]}</td>
-    </tr>
-  ))}
-
-
+    {Array.isArray(services) && Array.isArray(amount) &&
+      services.map((service, idx) => {
+        const price = parseFloat(amount[idx]) || 0;
+        const gst = price * 0.18;
+        const total = price + gst;
+        return (
+          <tr key={idx} className="border-gray-800">
+            <td className="text-gray-800">
+              {service.toUpperCase()}
+            </td>
+            <td className="py-3 text-right text-gray-800">₹{price.toFixed(2)}</td>
+            <td className="py-3 text-right text-gray-800">₹{gst.toFixed(2)}</td>
+            <td className="py-3 text-right text-gray-800">₹{total.toFixed(2)}</td>
+          </tr>
+        );
+      })}
   </tbody>
 </table>
 
+
           <div className="text-right text-gray-800">
-            <p className="text-lg font-semibold">Total Rupees</p>
+            <p className="text-lg font-semibold">Overall Total</p>
             <p className="text-xl font-bold">
   ₹
   {Array.isArray(amount)
@@ -156,9 +163,10 @@ const InvoicePreview = ({
           </div>
 
           <div className="mt-10 border-t border-gray-700 pt-4 text-sm text-gray-800">
-            <p className="font-semibold mb-1">Union Bank</p>
-            <p>265787963856 Account number</p>
-            <p>IFSC 3847232</p>
+            <p className="font-semibold mb-1">Payment Details</p>
+            <p>Account number 1692500100759601</p>
+            <p>IFSC KARB0000169</p>
+            <p>UPI ID : 9884521264@okbizaxis</p>
           </div>
         </div>
       </div>

@@ -58,12 +58,18 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
   const [GSTIN, setGSTIN] = useState<File | null>(null);
   const [PAN, setPAN] = useState<File | null>(null);
   const [clientFiles, setClientFiles] = useState<ClientFile[]>([]);
-  const [existingImageUrl1, setExistingImageUrl1] = useState<string | null>(null);
-  const [existingImageUrl2, setExistingImageUrl2] = useState<string | null>(null);
+  const [existingImageUrl1, setExistingImageUrl1] = useState<string | null>(
+    null
+  );
+  const [existingImageUrl2, setExistingImageUrl2] = useState<string | null>(
+    null
+  );
   const [modalImage, setModalImage] = useState("");
   const [history, setHistory] = useState<ClientHistoryEntry[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
-  const [servicePrices, setServicePrices] = useState<Record<string, string>>({});
+  const [servicePrices, setServicePrices] = useState({});
+  const [expiryDates, setExpiryDates] = useState<Record<string, string>>({});
+  const isFillingStaff = localStorage.getItem("userRole") === "filling_staff";
 
   useEffect(() => {
     const fetchClient = async () => {
@@ -73,33 +79,55 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
           `http://localhost:5000/get_client_history/${clientId}`
         );
         const fetchedClient = res.data;
+        console.log("✅ Fetched client:", fetchedClient);
+
         setClient(fetchedClient);
         setStatus(fetchedClient.status === "active");
-        setSelectedServices(fetchedClient.services || []);
-        
-        // Initialize service prices if available
-        if (fetchedClient.service_prices) {
-          setServicePrices(fetchedClient.service_prices);
+
+        if (fetchedClient.services) {
+          // Set selected services
+          setSelectedServices(fetchedClient.services.data || []);
+
+          // ✅ Convert price_data array to object
+          const priceMap = {};
+          fetchedClient.services.price_data?.forEach((item) => {
+            priceMap[item.service] = item.price;
+          });
+          setServicePrices(priceMap);
         }
 
+        // Set file preview URLs
         if (fetchedClient.gstin_file) {
-          setExistingImageUrl1(`http://localhost:5000/${fetchedClient.gstin_file}`);
+          setExistingImageUrl1(
+            `http://localhost:5000/${fetchedClient.gstin_file}`
+          );
         }
         if (fetchedClient.pan_file) {
-          setExistingImageUrl2(`http://localhost:5000/${fetchedClient.pan_file}`);
+          setExistingImageUrl2(
+            `http://localhost:5000/${fetchedClient.pan_file}`
+          );
         }
 
+        // Set attached files
         if (fetchedClient.company_name) {
           const filesRes = await axios.get(
             `http://localhost:5000/client-files/${fetchedClient.company_name}`
           );
-          setClientFiles(filesRes.data.map((file: any) => ({
-            name: file.name,
-            url: `http://localhost:5000/${file.url}`,
-            type: file.name.split('.').pop()?.toLowerCase() || 'file'
-          })));
+          setClientFiles(
+            filesRes.data.map((file) => ({
+              name: file.name,
+              url: `http://localhost:5000/${file.url}`,
+              type: file.name.split(".").pop()?.toLowerCase() || "file",
+            }))
+          );
         }
+
         setHistory(history_of_client.data);
+        const expiryMap = {};
+        fetchedClient.services.expiry_data?.forEach((item) => {
+          expiryMap[item.service] = item.expiry;
+        });
+        setExpiryDates(expiryMap);
       } catch (err) {
         console.error("❌ Failed to fetch client:", err);
       }
@@ -141,6 +169,10 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
     }
   };
 
+  const total = Object.entries(servicePrices)
+    .filter(([service]) => selectedServices.includes(service))
+    .reduce((sum, [_, price]) => sum + (parseFloat(price) || 0), 0);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!client) return;
@@ -158,11 +190,12 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
     formData.append("services", JSON.stringify(selectedServices));
     formData.append("revenue", total.toString());
     formData.append("service_prices", JSON.stringify(servicePrices));
+    formData.append("expiry_dates", JSON.stringify(expiryDates));
 
     if (GSTIN) formData.append("gstin_file", GSTIN);
     if (PAN) formData.append("pan_file", PAN);
-    
-    newFiles.forEach(file => {
+
+    newFiles.forEach((file) => {
       formData.append("files", file);
     });
 
@@ -170,7 +203,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
       await axios.patch(
         `http://localhost:5000/edit_client/${clientId}`,
         formData,
-        { headers: { "Content-Type": "multipart/form-data" }}
+        { headers: { "Content-Type": "multipart/form-data" } }
       );
       onClose();
     } catch (error) {
@@ -179,36 +212,35 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
   };
 
   const getFileIcon = (type: string) => {
-    switch(type) {
-      case 'pdf':
-        return '📄';
-      case 'doc':
-      case 'docx':
-        return '📝';
-      case 'xls':
-      case 'xlsx':
-        return '📊';
-      case 'jpg':
-      case 'jpeg':
-      case 'png':
-      case 'gif':
-        return '🖼️';
+    switch (type) {
+      case "pdf":
+        return "📄";
+      case "doc":
+      case "docx":
+        return "📝";
+      case "xls":
+      case "xlsx":
+        return "📊";
+      case "jpg":
+      case "jpeg":
+      case "png":
+      case "gif":
+        return "🖼️";
       default:
-        return '📁';
+        return "📁";
     }
   };
 
   if (!client) {
     return (
-      <div className="p-6 text-center text-gray-700">
-        Loading client data...
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7b49e7] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading settings...</p>
+        </div>
       </div>
     );
   }
-
-  const total = Object.entries(servicePrices)
-    .filter(([service]) => selectedServices.includes(service))
-    .reduce((sum, [_, price]) => sum + (parseFloat(price) || 0), 0);
 
   return (
     <div className="relative max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-md animate-fade-down">
@@ -225,7 +257,8 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
       </button>
 
       <form className="space-y-6" onSubmit={handleSubmit}>
-        <h1 className="text-3xl font-bold mb-4 text-gray-900">Edit Client</h1>
+     
+        {!isFillingStaff ?    <h1 className="text-3xl font-bold mb-4 text-gray-900">Edit Client</h1> :  <h1 className="text-3xl font-bold mb-4 text-gray-900">View Client</h1>}
 
         {/* Basic Information Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -264,9 +297,9 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
             {existingImageUrl2 && (
               <div className="mt-2">
                 <p className="text-sm">Current PAN:</p>
-                <img 
-                  src={existingImageUrl2} 
-                  alt="PAN Preview" 
+                <img
+                  src={existingImageUrl2}
+                  alt="PAN Preview"
                   className="h-20 cursor-pointer"
                   onClick={() => setModalImage(existingImageUrl2)}
                 />
@@ -289,9 +322,9 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
             {existingImageUrl1 && (
               <div className="mt-2">
                 <p className="text-sm">Current GSTIN:</p>
-                <img 
-                  src={existingImageUrl1} 
-                  alt="GSTIN Preview" 
+                <img
+                  src={existingImageUrl1}
+                  alt="GSTIN Preview"
                   className="h-20 cursor-pointer"
                   onClick={() => setModalImage(existingImageUrl1)}
                 />
@@ -324,29 +357,6 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
               className={inputClass}
             />
           </div>
-          <div>
-            <label>Total Revenue (₹)</label>
-            <input
-              type="number"
-              value={total}
-              readOnly
-              className={inputClass}
-            />
-          </div>
-        </div>
-
-        <div className="w-full">
-          <label>Address</label>
-          <textarea
-            value={client.address || ""}
-            onChange={(e) => handleChange("address", e.target.value)}
-            className={inputClass}
-            rows={3}
-          />
-        </div>
-
-        {/* Status & Services */}
-        <div className="flex flex-col md:flex-row justify-between gap-8">
           <div className="flex items-center gap-4">
             <label className="inline-flex items-center cursor-pointer">
               <input
@@ -361,51 +371,104 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
               Status: {status ? "Active" : "Inactive"}
             </span>
           </div>
+        </div>
 
-          <div>
-            <label className="block mb-1 text-sm font-medium text-gray-900">
-              Services
-            </label>
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-wrap gap-2">
-                {["INCORP", "GST", "ITR", "MCA", "IP","ISO","FSSAI"].map((service) => (
+        <div className="w-full">
+          <label>Address</label>
+          <textarea
+            value={client.address || ""}
+            onChange={(e) => handleChange("address", e.target.value)}
+            className={inputClass}
+            rows={3}
+          />
+        </div>
+
+        {/* Services Section */}
+        <div>
+          <h3 className="text-lg font-medium mb-3">Services</h3>
+          <div className="flex flex-wrap gap-4 mb-6">
+            {["INCORP", "GST", "ITR", "MCA", "IP", "ISO", "FSSAI"].map((service) => {
+              const lowerService = service.toLowerCase();
+              return (
+                <div key={service} className="flex flex-col">
                   <button
-                    key={service}
                     type="button"
-                    onClick={() => toggleService(service)}
+                    onClick={() => toggleService(lowerService)}
                     className={`rounded-md py-2 px-4 text-sm border transition-all ${
-                      selectedServices.includes(service)
-                        ? "bg-slate-800 text-white"
-                        : "bg-white text-slate-600 border-gray-300 hover:bg-slate-800 hover:text-white"
+                      selectedServices.includes(lowerService)
+                        ? "bg-[#7b49e7] text-white"
+                        : "bg-white text-slate-600 border-gray-300 hover:bg-[#7b49e7] hover:text-white"
                     }`}
                   >
                     {service}
                   </button>
-                ))}
-              </div>
-              
+
+                  {/* Show expiry input only if selected and is ip/iso/fssai */}
+                  {["ip", "iso", "fssai"].includes(lowerService) &&
+                    selectedServices.includes(lowerService) && (
+                      <div className="mt-1">
+                        <label className="text-xs text-gray-700">Expiry Date</label>
+                        <input
+                          type="date"
+                          className="border rounded px-2 py-1 text-sm"
+                          value={expiryDates?.[lowerService] || ""}
+                          onChange={(e) =>
+                            setExpiryDates((prev) => ({
+                              ...prev,
+                              [lowerService]: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Service Prices */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Service Prices (₹)</h3>
+            <div className="space-y-2">
               {selectedServices.map((service) => (
                 <div key={service} className="flex items-center gap-2">
-                  <span className="w-20">{service}:</span>
+                  <span className="w-20 text-sm font-medium">{service.toUpperCase()}:</span>
                   <input
                     type="number"
-                    value={servicePrices[service] || ""}
+                    step="1"
+                    value={servicePrices[service] ?? ""}
                     onChange={(e) =>
                       setServicePrices((prev) => ({
                         ...prev,
                         [service]: e.target.value,
                       }))
                     }
+                    onBlur={(e) =>
+                      setServicePrices((prev) => ({
+                        ...prev,
+                        [service]: parseFloat(e.target.value || "0").toFixed(2),
+                      }))
+                    }
                     placeholder="Price"
                     className="border rounded px-3 py-1 w-40"
                   />
-                  <span>₹</span>
                 </div>
               ))}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Total Revenue (₹)</label>
+              <input
+                type="number"
+                value={total}
+                readOnly
+                className={inputClass}
+              />
             </div>
           </div>
         </div>
 
+        {/* Shareholders Section */}
         {Array.isArray(client.shareholders) && client.shareholders.length > 0 && (
           <div className="bg-sky-900 p-5 rounded-xl text-white">
             <h2 className="text-lg font-semibold mb-2">Incorporation Details</h2>
@@ -423,14 +486,17 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
         {/* Document Upload Section */}
         <div className="mt-6">
           <h3 className="text-lg font-medium mb-4">Client Documents</h3>
-          
+
           {/* All Client Files */}
           <div className="mb-8">
             <h4 className="text-md font-medium mb-3">All Documents</h4>
             {clientFiles.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {clientFiles.map((file, index) => (
-                  <div key={index} className="border rounded-lg p-3 hover:shadow-md transition-shadow">
+                  <div
+                    key={index}
+                    className="border rounded-lg p-3 hover:shadow-md transition-shadow"
+                  >
                     <div className="flex flex-col items-center">
                       {file.type.match(/(jpg|jpeg|png|gif)$/) ? (
                         <img
@@ -444,11 +510,13 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
                           {getFileIcon(file.type)}
                         </div>
                       )}
-                      <span className="text-sm font-medium truncate w-full text-center">{file.name}</span>
+                      <span className="text-sm font-medium truncate w-full text-center">
+                        {file.name}
+                      </span>
                       <a
                         href={file.url}
                         download
-                        className="text-xs text-blue-600 hover:underline mt-1"
+                        className="text-xs text-[#7b49e7] hover:underline mt-1"
                       >
                         Download
                       </a>
@@ -484,41 +552,53 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
         </div>
 
         {/* Client History */}
-        {history.length > 0 && (
-          <div className="mt-6">
-            <h3 className="text-lg font-medium mb-3">Client History</h3>
-            <div className="space-y-3">
-              {history.map((entry, idx) => (
-                <div
-                  key={idx}
-                  className="bg-gray-100 rounded-lg p-4 shadow-sm border border-gray-300"
-                >
-                  <p className="text-sm text-gray-700">
-                    <span className="font-semibold text-gray-900">Service:</span> {entry.service_type}
-                  </p>
-                  <p className="text-sm text-gray-700">
-                    <span className="font-semibold text-gray-900">First Update On:</span> {entry.created_at.slice(0, 10)}
-                  </p>
-                  <p className="text-sm text-gray-700">
-                    <span className="font-semibold text-gray-900">Updated Fields:</span> {entry.last_contact.slice(0, 10)}
-                  </p>
-                  <p className="text-sm text-gray-700">
-                    <span className="font-semibold text-gray-900">Updated By:</span> {entry.assignedTo}
-                  </p>
-                </div>
-              ))}
+ {history.length > 0 && (
+  <div className="mt-8">
+    <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+      <span className="inline-block w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+      Client History
+    </h3>
+    <div className="space-y-4">
+      {history.map((entry, idx) => (
+        <div
+          key={idx}
+          className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 transition-all hover:shadow-md"
+        >
+          <div className="flex justify-between items-center mb-2">
+            <h4 className="text-md font-medium text-blue-600 capitalize">
+              {entry.service_type} Service
+            </h4>
+            <span className="text-xs text-gray-400">
+              Created: {entry.created_at.slice(0, 10)}
+            </span>
+          </div>
+
+          <div className="text-sm text-gray-700 grid gap-2">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold w-28 text-gray-800">Last update on:</span>
+              <span className="text-gray-600">{entry.last_contact.slice(0, 10)}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="font-semibold w-28 text-gray-800">Staff By:</span>
+              <span className="text-gray-600">{entry.assignedTo}</span>
             </div>
           </div>
-        )}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
 
         {/* Submit Button */}
         <div className="pt-6">
-          <button
+        { !isFillingStaff && <button
             type="submit"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+            className="hover:bg-[#5c2dbf] bg-[#7b49e7] text-white font-semibold py-2 px-6 rounded-lg transition-colors"
           >
             Update Client
-          </button>
+          </button>}
         </div>
       </form>
 
@@ -540,8 +620,12 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
               />
             ) : (
               <div className="p-8 text-center">
-                <div className="text-6xl mb-4">{getFileIcon(modalImage.split('.').pop() || '')}</div>
-                <p className="text-lg font-medium">This file type cannot be previewed</p>
+                <div className="text-6xl mb-4">
+                  {getFileIcon(modalImage.split(".").pop() || "")}
+                </div>
+                <p className="text-lg font-medium">
+                  This file type cannot be previewed
+                </p>
                 <a
                   href={modalImage}
                   download

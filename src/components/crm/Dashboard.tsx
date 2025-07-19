@@ -2,13 +2,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, FileText, Clock, TrendingUp, AlertCircle } from "lucide-react";
 import { StatsCard } from "./StatsCard";
-import { RecentActivity } from "./RecentActivity";
 import { ServiceStatus } from "./ServiceStatus";
 import { UpcomingDeadlines } from "./UpcomingDeadlines";
 import { useState,useEffect} from "react";
 import DueAlerts from "./DueAlerts"
 import axios from "axios";
 import { CheckCircle } from "lucide-react";
+
 
 export const Dashboard = () => {
   const BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -59,7 +59,6 @@ export const Dashboard = () => {
   ]);
 
    useEffect(() => {
-    console.log(BASE_URL);
     const fetchStats = async () => {
       try {
         const res = await axios.get("http://localhost:5000/dashboard_stats");
@@ -107,34 +106,85 @@ export const Dashboard = () => {
     }
 
     fetchdues();
-
     fetchStats();
   }, []);
 
-  function formatIndianShortNumber(value: number): string {
+function formatIndianShortNumber(value: number): string {
+  const format = (num: number, suffix: string) =>
+    `₹${num.toFixed(2).replace(/\.00$/, "")}${suffix}`;
+
   if (value >= 10000000) {
-    // 1 Cr = 1,00,00,000
-    return `₹${(value / 10000000).toFixed(2)}Cr`;
+    return format(value / 10000000, "Cr");
   } else if (value >= 100000) {
-    // 1 Lakh = 1,00,000
-    return `₹${(value / 100000).toFixed(2)}L`;
+    return format(value / 100000, "L");
   } else if (value >= 1000) {
-    // 1 Thousand = 1,000
-    return `₹${(value / 1000).toFixed(2)}K`;
+    return format(value / 1000, "K");
   } else {
-    // Less than 1000
-    return `₹${value.toFixed(2)}`;
+    return `₹${value.toFixed(2).replace(/\.00$/, "")}`;
   }
 }
+const data = [
+  {
+    name: "ITR",
+    completed: 1,
+    total: 5,
+    status: "on-track",
+    deadline: "2025-07-23"
+  },
+  {
+    name: "IP",
+    completed: 1,
+    total: 2,
+    status: "on-track",
+    deadline: "2025-07-23"
+  },
+  {
+    name: "ISO",
+    completed: 0,
+    total: 6,
+    status: "on-track",
+    deadline: "2025-07-24"
+  },
+  {
+    name: "Incorporation",
+    completed: 4,
+    total: 15,
+    status: "ahead",
+    deadline: "2025-07-30"
+  },
+  {
+    name: "FSSAI",
+    completed: 0,
+    total: 6,
+    status: "ahead",
+    deadline: "2025-07-30"
+  },
+  {
+    name: "GST",
+    completed: 0,
+    total: 7,
+    status: "ahead",
+    deadline: "2025-08-21"
+  },
+  {
+    name: "MCA",
+    completed: 0,
+    total: 3,
+    status: "no-deadline",
+    deadline: "N/A"
+  }
+];
+
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <div className="text-sm text-gray-500">
-          Welcome back! Here's your business overview.
-        </div>
-      </div>
+        <h1 className="relative inline-block text-3xl font-bold text-gray-900 after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-1 after:w-full after:bg-[#5c2dbf]">
+  Dashboard
+</h1>
+
+
+      </div>  
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -143,28 +193,43 @@ export const Dashboard = () => {
         ))}
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <ServiceStatus />
-          {/* <RecentActivity /> */}
-        </div>
-        <div className="space-y-6">
-          <Card className="animate-scale-in">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {alerts.length > 0 ? (<AlertCircle className="h-5 w-5 text-red-500" />): (<CheckCircle  className="h-5 w-5"/>)}
-                Urgent Alerts
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-<DueAlerts alerts={alerts}></DueAlerts>
-            </CardContent>
-          </Card>
-          <UpcomingDeadlines />
+<div className="">
+  {/* Grid layout with 3 columns on large screens */}
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
 
-        </div>
-      </div>
+    {/* Full-width section for service status (spans all 3 columns on large screens) */}
+    <div className="lg:col-span-3">
+      <ServiceStatus />
     </div>
+
+    {/* Graph section (takes 2 columns on large screens) */}
+    <div className="lg:col-span-2 w-full h-[400px]">
+      <UpcomingDeadlines />
+
+    </div>
+
+    {/* Alerts & Deadlines */}
+    <div className="space-y-6">
+      <Card className="animate-scale-in">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            {alerts.length > 0 ? (
+              <AlertCircle className="h-5 w-5 text-red-500" />
+            ) : (
+              <CheckCircle className="h-5 w-5 text-green-500" />
+            )}
+            Urgent Alerts
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DueAlerts alerts={alerts} />
+        </CardContent>
+      </Card>
+
+    </div>
+    
+  </div>
+</div>
+</div>
   );
 };

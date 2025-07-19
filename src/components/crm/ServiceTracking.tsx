@@ -46,6 +46,8 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteid, setdeleteid] = useState(0);
   const [deletekey, setdeletekey] = useState("");
+  const [users, setUsers] = useState<any[]>([]);
+  const isFillingStaff = localStorage.getItem("userRole") === "filling_staff";
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -56,9 +58,32 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
                 `http://localhost:5000/get_all_services/${userName}`
               )
             : await axios.get("http://localhost:5000/get_all_services");
-        const rows = res.data;
 
-        const grouped = { incorp: [], gst: [], itr: [], mca: [], ip: [], iso: [], fssai: [] };
+        let rows = res.data;
+
+        const userRes = await axios.get(
+          "http://localhost:5000/users/team-groups"
+        );
+        const teamGroups = userRes.data; // ✅ Array of grouped users
+        setUsers(teamGroups);
+        console.log("✅ Team Groups:", teamGroups);
+
+        console.log("🧑‍💼 Filling Staff:", fillingStaffMembers);
+
+        // ✅ Restrict view if role is filling_staff
+        if (userRole === "filling_staff" && userName) {
+          rows = rows.filter((row) => row.assignedTo === userName);
+        }
+
+        const grouped = {
+          incorp: [],
+          gst: [],
+          itr: [],
+          mca: [],
+          ip: [],
+          iso: [],
+          fssai: [],
+        };
 
         for (const row of rows) {
           const entry = {
@@ -75,7 +100,7 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
           };
 
           if (grouped[row.service_type]) {
-            grouped[row.service_type].push(entry);
+            grouped[row.service_type].unshift(entry);
           } else {
             grouped[row.service_type] = [entry];
           }
@@ -89,6 +114,10 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
 
     fetchServices();
   }, []);
+
+  const fillingStaffMembers = users
+    .flatMap((group) => group.members)
+    .filter((member) => member.role === "filling_staff");
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -153,8 +182,45 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Service Tracking</h1>
+        <h1 className="relative inline-block text-3xl font-bold text-gray-900 after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-1 after:w-full after:bg-[#5c2dbf]">
+          Service Tracking
+        </h1>
       </div>
+
+      {isFillingStaff && (
+  <Card className="mt-4">
+    <CardContent className="p-6">
+      <h2 className="text-lg font-semibold mb-4">Your Service Summary</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {Object.entries(services).map(([type, list]) => {
+          const userTasks = list.filter(
+            (item) => item.assignedTo === userName
+          );
+          return (
+            <div
+              key={type}
+              className="p-4 rounded-lg border shadow-sm bg-gray-50"
+            >
+              <p className="text-sm text-gray-600 capitalize">{type.toLocaleUpperCase()}</p>
+              <p className="text-xl font-bold text-[#5c2dbf]">
+                {userTasks.length}
+              </p>
+            </div>
+          );
+        })}
+        <div className="p-4 rounded-lg border shadow-sm bg-gray-50 col-span-2 sm:col-span-1">
+          <p className="text-sm text-gray-600">Total Assigned</p>
+          <p className="text-xl font-bold text-green-600">
+            {Object.values(services)
+              .flat()
+              .filter((item) => item.assignedTo === userName).length}
+          </p>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+)}
+
 
       <Card>
         <CardContent className="p-6">
@@ -309,6 +375,40 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
               Details for <strong>{selectedService?.client}</strong>
             </DialogDescription>
           </DialogHeader>
+          {isFillingStaff && (
+  <Card className="mt-4">
+    <CardContent className="p-6">
+      <h2 className="text-lg font-semibold mb-4">Your Service Summary</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {Object.entries(services).map(([type, list]) => {
+          const userTasks = list.filter(
+            (item) => item.assignedTo === userName
+          );
+          return (
+            <div
+              key={type}
+              className="p-4 rounded-lg border shadow-sm bg-gray-50"
+            >
+              <p className="text-sm text-gray-600 capitalize">{type}</p>
+              <p className="text-xl font-bold text-[#5c2dbf]">
+                {userTasks.length}
+              </p>
+            </div>
+          );
+        })}
+        <div className="p-4 rounded-lg border shadow-sm bg-gray-50 col-span-2 sm:col-span-1">
+          <p className="text-sm text-gray-600">Total Assigned</p>
+          <p className="text-xl font-bold text-green-600">
+            {Object.values(services)
+              .flat()
+              .filter((item) => item.assignedTo === userName).length}
+          </p>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+)}
+
 
           <div className="space-y-4 text-sm">
             <div>
@@ -322,10 +422,10 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
             </div>
 
             <div>
-              <label className="block font-medium">Assigned To:</label>
-              <input
-                type="text"
+              <label className="block font-medium mb-1">Assigned To:</label>
+              <select
                 className="w-full border rounded px-3 py-2"
+                disabled={isFillingStaff}
                 value={selectedService?.assignedTo || ""}
                 onChange={(e) =>
                   setSelectedService((prev) => ({
@@ -333,7 +433,14 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
                     assignedTo: e.target.value,
                   }))
                 }
-              />
+              >
+                <option value="">Select a user</option>
+                {fillingStaffMembers?.map((member) => (
+                  <option key={member.id} value={member.name}>
+                    {member.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -341,6 +448,7 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
               <input
                 type="date"
                 className="w-full border rounded px-3 py-2"
+                disabled={isFillingStaff}
                 value={
                   selectedService?.deadline
                     ? new Date(selectedService.deadline)
@@ -362,7 +470,7 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
               <p>{selectedService?.priority}</p>
             </div>
 
-            <Button
+            {!isFillingStaff && <Button
               className="w-full mt-4"
               onClick={async () => {
                 try {
@@ -400,7 +508,7 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
               }}
             >
               Save
-            </Button>
+            </Button>}
           </div>
         </DialogContent>
       </Dialog>
@@ -422,12 +530,24 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
               value={selectedService?.status || ""}
               onChange={(e) => {
                 const newStatus = e.target.value;
-                const progressMap = {
+                console.log(selectedService);
+                const ipProgressMap = {
+                  Filed: 15,
+                  Inprocess: 33,
+                  Objected: 67,
+                  Registered: 100,
+                };
+
+                const defaultProgressMap = {
                   started: 10,
                   documentation: 33,
                   filling: 67,
                   approval: 100,
                 };
+
+                const progressMap =
+                  activeTab === "ip" ? ipProgressMap : defaultProgressMap;
+
                 setSelectedService((prev) => ({
                   ...prev,
                   status: newStatus,
@@ -435,10 +555,21 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
                 }));
               }}
             >
-              <option value="started">Started</option>
-              <option value="documentation">Documentation</option>
-              <option value="filling">Filling</option>
-              <option value="approval">Approval</option>
+              {activeTab === "ip" ? (
+                <>
+                  <option value="Filed">Filed</option>
+                  <option value="Inprocess">In process</option>
+                  <option value="Objected">Objected</option>
+                  <option value="Registered">Registered</option>
+                </>
+              ) : (
+                <>
+                  <option value="started">Started</option>
+                  <option value="documentation">Documentation</option>
+                  <option value="filling">Filling</option>
+                  <option value="approval">Approval</option>
+                </>
+              )}
             </select>
 
             <Button
@@ -462,11 +593,10 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
                   );
                   setServices((prev) => {
                     const updated = { ...prev };
-                    updated[activeTab] = updated[activeTab].map((service) =>
-                      service.id === selectedService.id
-                        ? selectedService
-                        : service
+                    updated[activeTab] = updated[activeTab].filter(
+                      (s) => s.id !== selectedService.id
                     );
+                    updated[activeTab].unshift(selectedService);
                     return updated;
                   });
                   console.log(selectedService.id);

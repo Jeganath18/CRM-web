@@ -2,33 +2,88 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, UserPlus } from "lucide-react";
+import { Users, UserPlus, Pencil, Trash2 } from "lucide-react";
 import RegisterForm from "../ui/Register_user";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 export const TeamCollaboration = () => {
   const [showForm, setShowform] = useState(false);
   const [teams, setTeams] = useState([]);
+  const [showdeleteDialog, setShowdeleteDialog] = useState(false);
+  const [showeditDialog, setShoweditDialog] = useState(false);
+  const [edituser, setedituser] = useState(null);
+  const [edituserId, setedituserId] = useState<number | null>(null);
+  
+  let isadmin = true;
+
+  if(localStorage.userRole==="account_manager"){
+    isadmin=false;
+  }
+
 
   useEffect(() => {
-    const fetchTeams = async () => {
-      try {
-        const res = await axios.get("http://localhost:5000/users/team-groups");
-        setTeams(res.data);
-      } catch (err) {
-        console.error("Failed to fetch team data:", err);
-      }
-    };
     fetchTeams();
   }, []);
 
+  const fetchTeams = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/users/team-groups");
+      setTeams(res.data);
+      console.log(res.data);
+    } catch (err) {
+      console.error("Failed to fetch team data:", err);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "online": return "bg-green-500";
-      case "away": return "bg-yellow-500";
-      case "offline": return "bg-gray-400";
-      default: return "bg-gray-400";
+      case "online":
+        return "bg-green-500";
+      case "away":
+        return "bg-yellow-500";
+      case "offline":
+        return "bg-gray-400";
+      default:
+        return "bg-gray-400";
+    }
+  };
+
+  const handleEditUser = (member) => {
+    setShoweditDialog(true);
+    setedituser(member);
+    console.log(member);
+  };
+
+  const handleDeleteUser = (id: number) => {
+    setedituserId(id);
+    setShowdeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      if (!edituserId) return;
+
+      await axios.delete(`http://localhost:5000/delete_user/${edituserId}`);
+
+      // Remove user from team list
+      setTeams((prev) =>
+        prev.map((team) => ({
+          ...team,
+          members: team.members.filter((m) => m.id !== edituserId),
+        }))
+      );
+
+      setedituserId(null);
+      setShowdeleteDialog(false);
+    } catch (err) {
+      console.error("❌ Error deleting user:", err);
     }
   };
 
@@ -39,9 +94,11 @@ export const TeamCollaboration = () => {
       ) : (
         <>
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900">Team Collaboration</h1>
+            <h1 className="relative inline-block text-3xl font-bold text-gray-900 after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-1 after:w-full after:bg-[#5c2dbf]">
+              Team Collaboration
+            </h1>
             <Button
-              className="bg-blue-600 hover:bg-blue-700"
+              className="hover:bg-[#5c2dbf] bg-[#7b49e7]"
               onClick={() => setShowform(true)}
             >
               <UserPlus className="h-4 w-4 mr-2" />
@@ -68,7 +125,7 @@ export const TeamCollaboration = () => {
                       {team.members.map((member) => (
                         <div
                           key={member.id}
-                          className="flex items-center justify-between"
+                          className="flex items-center justify-between group"
                         >
                           <div className="flex items-center space-x-3">
                             <div className="relative">
@@ -91,6 +148,24 @@ export const TeamCollaboration = () => {
                               <p className="text-xs text-gray-500">{member.role}</p>
                             </div>
                           </div>
+                    {isadmin && 
+                          <div className="flex items-center space-x-2 opacity-100 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditUser(member)}
+                            >
+                              <Pencil className="w-4 h-4 text-blue-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteUser(member.id)}
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </Button>
+                          </div>
+}
                         </div>
                       ))}
                     </div>
@@ -101,6 +176,77 @@ export const TeamCollaboration = () => {
           </div>
         </>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showdeleteDialog} onOpenChange={setShowdeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete User</DialogTitle>
+            <DialogDescription>This action cannot be undone!</DialogDescription>
+          </DialogHeader>
+          <Button className="w-full mt-2" onClick={confirmDelete}>
+            Delete User
+          </Button>
+        </DialogContent>
+      </Dialog>
+               <Dialog open={showeditDialog} onOpenChange={setShoweditDialog}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Edit Client</DialogTitle>
+      <DialogDescription>
+        Update details for <strong>{edituser?.name}</strong>
+      </DialogDescription>
+    </DialogHeader>
+
+    <div className="space-y-4 text-sm">
+      <div>
+        <label className="block font-medium">Full Name:</label>
+        <input
+          type="text"
+          className="w-full border rounded px-3 py-2"
+          value={edituser?.name || ""}
+          onChange={(e) =>
+            setedituser((prev) => ({
+              ...prev,
+              name: e.target.value,
+            }))
+          }
+        />
+      </div>
+
+      <Button
+        className="w-full mt-4"
+        onClick={async () => {
+          try {
+            await axios.patch(`http://localhost:5000/edit_user/${edituser.id}`, {
+              name: edituser.name,
+              email: edituser.email,
+              role: edituser.role,
+              designation: edituser.designation,
+            });
+
+            // Refresh or update local team state
+            setTeams((prev) =>
+              prev.map((team) => ({
+                ...team,
+                members: team.members.map((m) =>
+                  m.id === edituser.id ? edituser : m
+                ),
+              }))
+            );
+
+            setShoweditDialog(false);
+          } catch (err) {
+            console.error("❌ Failed to update client:", err);
+          }
+        }}
+      >
+        Save
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
+
     </div>
   );
 };

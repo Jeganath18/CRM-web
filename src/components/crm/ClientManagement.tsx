@@ -28,12 +28,12 @@ interface Client {
   revenue: string;
 }
 
-interface clientprops{
+interface ClientProps {
   userRole: string | null;
   userName: string | null;
 }
 
-export const ClientManagement = ({userName,userRole}:clientprops) => {
+export const ClientManagement = ({ userName, userRole }: ClientProps) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
@@ -45,23 +45,28 @@ export const ClientManagement = ({userName,userRole}:clientprops) => {
   const [deleting, setDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isFillingStaff = userRole === "filling_staff";
+
+
 
   const getClients = async () => {
     try {
       setLoading(true);
       setError(null);
-const res = userRole === "account_manager"
-  ? await axios.get(`http://localhost:5000/clients/${userName}`) 
-  : await axios.get("http://localhost:5000/clients");
-      
-      // Handle services parsing - they might be stored as JSON strings
-      const processedClients = res.data.map((client) => ({
+
+      const res = userRole === "account_manager"
+        ? await axios.get(`http://localhost:5000/clients/${userName}`)
+        : await axios.get("http://localhost:5000/clients");
+
+      const processedClients = res.data.map((client: any) => ({
         ...client,
-        services: typeof client.services === 'string' 
-          ? JSON.parse(client.services) 
+        services: typeof client.services === 'string'
+          ? JSON.parse(client.services)
           : client.services || []
       }));
       
+      
+
       setClients(processedClients);
     } catch (err) {
       console.error("Error fetching clients:", err);
@@ -87,7 +92,7 @@ const res = userRole === "account_manager"
       client.company_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.business_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (client.phone && client.phone.toLowerCase().includes(searchTerm.toLowerCase()));
-    
+
     const matchesFilter =
       selectedFilter === "all" || client.status === selectedFilter;
 
@@ -122,7 +127,6 @@ const res = userRole === "account_manager"
     }
   };
 
-  // Loading state
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-64">
@@ -131,7 +135,6 @@ const res = userRole === "account_manager"
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-64">
@@ -144,7 +147,7 @@ const res = userRole === "account_manager"
   }
 
   return (
-    <div className="space-y-6 animate-fade-in p-4">
+    <div className="space-y-6 animate-fade-in p-2">
       {showForm ? (
         <RegisterForm
           onClose={() => {
@@ -175,14 +178,9 @@ const res = userRole === "account_manager"
       ) : (
         <>
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900">Client Management</h1>
-            <Button
-              className="bg-blue-600 hover:bg-blue-700"
-              onClick={() => setShowForm(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Client
-            </Button>
+            <h1 className="relative inline-block text-3xl font-bold text-gray-900 after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-1 after:w-full after:bg-[#5c2dbf]">
+              Client Management
+            </h1>
           </div>
 
           <Card>
@@ -217,8 +215,8 @@ const res = userRole === "account_manager"
             <div className="text-center py-12">
               <div className="text-gray-500 text-lg mb-2">No clients found</div>
               <div className="text-gray-400 text-sm">
-                {searchTerm || selectedFilter !== "all" 
-                  ? "Try adjusting your search or filters" 
+                {searchTerm || selectedFilter !== "all"
+                  ? "Try adjusting your search or filters"
                   : "Add your first client to get started"}
               </div>
             </div>
@@ -265,13 +263,13 @@ const res = userRole === "account_manager"
                         <p className="text-sm font-medium text-gray-700 mb-1">Services:</p>
                         <div className="flex flex-wrap gap-1">
                           {client.services && client.services.length > 0 ? (
-                            client.services.map((service, serviceIndex) => (
+                            client.services.map((service, idx) => (
                               <Badge
-                                key={`${service}-${serviceIndex}`}
+                                key={`${service}-${idx}`}
                                 variant="secondary"
                                 className="text-xs"
                               >
-                                {service}
+                                {service.toLocaleUpperCase()}
                               </Badge>
                             ))
                           ) : (
@@ -284,7 +282,7 @@ const res = userRole === "account_manager"
                         <span className="text-gray-600">Industry:</span>
                         <span className="font-medium">{client.business_type}</span>
                       </div>
-                      
+
                       <div className="flex justify-between pt-3 border-t">
                         <Button
                           size="sm"
@@ -294,17 +292,27 @@ const res = userRole === "account_manager"
                             setShowEdit(true);
                           }}
                         >
-                          <Edit className="h-4 w-4 mr-1" />
-                          Edit
+                          {isFillingStaff ? (
+                            <>
+                              <Search className="h-4 w-4 mr-1" /> View
+                            </>
+                          ) : (
+                            <>
+                              <Edit className="h-4 w-4 mr-1" /> Edit
+                            </>
+                          )}
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-red-600 hover:text-red-700"
-                          onClick={() => confirmDeleteClient(client.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+
+                        {!isFillingStaff && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => confirmDeleteClient(client.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -312,18 +320,13 @@ const res = userRole === "account_manager"
               ))}
             </div>
           )}
-        </>
-      )}
 
-      {/* Delete Confirmation Modal */}
-  <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-  <DialogContent>
+          <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+            <DialogContent>
               <DialogHeader>
-            <DialogTitle>Delete Client</DialogTitle>
-            <DialogDescription>
-             This action cannot be undone!
-            </DialogDescription>
-          </DialogHeader>
+                <DialogTitle>Delete Client</DialogTitle>
+                <DialogDescription>This action cannot be undone!</DialogDescription>
+              </DialogHeader>
               <Button
                 variant="destructive"
                 onClick={deleteClient}
@@ -331,12 +334,10 @@ const res = userRole === "account_manager"
               >
                 {deleting ? "Deleting..." : "Delete"}
               </Button>
-
-
-  </DialogContent>
-</Dialog>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
     </div>
   );
-
 };
-

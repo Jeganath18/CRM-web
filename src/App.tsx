@@ -17,34 +17,61 @@ const App = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("userRole");
-    const name = localStorage.getItem("userName");
-    if (token && role) {
-      setIsAuthenticated(true);
-      setUserRole(role);
-      if (name) setUserName(name);
-    }
-  }, []);
+  // Token generator
+function generateRandomToken() {
+  const header = {
+    alg: "HS256",
+    typ: "JWT"
+  };
 
-  const handleLogin = (role: string, name: string) => {
-    localStorage.setItem("token", "session-token");
-    localStorage.setItem("userRole", role);
-    localStorage.setItem("userName", name);
+  const payload = {
+    sub: Math.random().toString(36).substring(2),
+    iat: Math.floor(Date.now() / 1000)
+  };
+
+  function base64url(source: object) {
+    return btoa(JSON.stringify(source))
+      .replace(/=+$/, "")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_");
+  }
+
+  const encodedHeader = base64url(header);
+  const encodedPayload = base64url(payload);
+  const signature = Math.random().toString(36).substring(2, 22); // dummy
+
+  return `${encodedHeader}.${encodedPayload}.${signature}`;
+}
+
+useEffect(() => {
+  const token = localStorage.getItem("token");
+  const role = localStorage.getItem("userRole");
+  const name = localStorage.getItem("userName");
+  if (token && role) {
     setIsAuthenticated(true);
     setUserRole(role);
-    setUserName(name);
-  };
+    if (name) setUserName(name);
+  }
+}, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("userName");
-    setIsAuthenticated(false);
-    setUserRole(null);
-    setUserName("");
-  };
+const handleLogin = (role: string, name: string) => {
+  const token = generateRandomToken();
+  localStorage.setItem("token", token);
+  localStorage.setItem("userRole", role);
+  localStorage.setItem("userName", name);
+  setIsAuthenticated(true);
+  setUserRole(role);
+  setUserName(name);
+};
+
+const handleLogout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("userRole");
+  localStorage.removeItem("userName");
+  setIsAuthenticated(false);
+  setUserRole(null);
+  setUserName("");
+};
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -11,7 +11,6 @@ import {
   CheckCircle,
   AlertCircle,
   Search,
-  Trash2,
   ReceiptIndianRupee,
 } from "lucide-react";
 import {
@@ -44,59 +43,70 @@ export const Billing = ({ userName, userRole }: clientprops) => {
   const [invoiceData, setInvoiceData] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<string>("");
+  const storedUserName = typeof window !== "undefined" ? localStorage.getItem("userName") : null;
 
-  useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const res = await axios.get(
-          "http://localhost:5000/billing_with_clients"
-        );
-        const data = res.data;
+  useState(()=>{
+  const fetchServices = async () => {
+  try {
+    const res = await axios.get("http://localhost:5000/billing_with_clients");
+    let data = res.data;
 
-        const grouped: Record<string, any[]> = {
-          unpaid: [],
-          partial: [],
-          paid: [],
-          dues: [],
-        };
+    const storedUserName = typeof window !== "undefined" ? localStorage.getItem("userName") : null;
 
-        for (const client of data) {
-          const entry = {
-            invoice_number: client.invoice_number,
-            client: client.company_name,
-            owner: client.owner_name,
-            email: client.company_email,
-            phone: client.phone,
-            assignedTo: client.assignedTo,
-            address: client.address,
-            status: client.status,
-            revenue: client.total_amount,
-            progress: client.progress,
-            service_type: client.services,
-            amount_paid: client.amount_paid,
-            due: client.due_amount,
-            due_date: client.due_date,
-            client_id: client.client_id,
-            gst: client.gstin,
-            payment_method: client.payment_method || [],
-          };
+    // 🔒 Filter if role is account_manager
+    if (userRole === "account_manager") {
+      data = data.filter((client) => client.assignedTo === storedUserName);
+      console.log(data);
+    }
 
-          const statusKey = client.status?.toLowerCase();
-          if (grouped[statusKey]) {
-            grouped[statusKey].push(entry);
-          } else {
-            grouped.dues.push(entry);
-          }
-        }
-
-        setServices(grouped);
-      } catch (error) {
-        console.error("❌ Failed to fetch client services:", error);
-      }
+    const grouped: Record<string, any[]> = {
+      unpaid: [],
+      partial: [],
+      paid: [],
+      dues: [],
     };
 
-    fetchServices();
-  }, []);
+    for (const client of data) {
+      const entry = {
+        invoice_number: client.invoice_number,
+        client: client.company_name,
+        owner: client.owner_name,
+        email: client.company_email,
+        phone: client.phone,
+        assignedTo: client.assignedTo,
+        address: client.address,
+        status: client.status,
+        revenue: client.total_amount,
+        progress: client.progress,
+        service_type: client.services,
+        amount_paid: client.amount_paid || 0,
+        due: client.due_amount,
+        due_date: new Date(client.due_date).toISOString().split("T")[0],
+        client_id: client.client_id,
+        gst: client.gstin,
+        payment_method: client.payment_method || "",
+      };
+
+      const statusKey = client.status?.toLowerCase();
+      if (grouped[statusKey]) {
+        grouped[statusKey].push(entry);
+      } else {
+        grouped.dues.push(entry);
+      }
+    }
+
+    setServices(grouped);
+  } catch (error) {
+    console.error("❌ Failed to fetch client services:", error);
+  }
+};
+fetchServices();
+  }
+,[]);
+
+  const onClose = () => {
+    setShowInvoice(false);
+  };
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -131,11 +141,11 @@ export const Billing = ({ userName, userRole }: clientprops) => {
   return (
     <>
       {showInvoice ? (
-        <InvoicePreview {...invoiceData} />
+        <InvoicePreview {...invoiceData} onClose={onClose} />
       ) : (
         <div className="space-y-6 animate-fade-in">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Billing and invoice
+          <h1 className="relative inline-block text-3xl font-bold text-gray-900 after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-1 after:w-full after:bg-[#5c2dbf]">
+            Billing and Invoice
           </h1>
 
           <Card>
@@ -266,7 +276,7 @@ export const Billing = ({ userName, userRole }: clientprops) => {
                                   issueDate: new Date().toDateString(),
                                   dueDate: service.due_date
                                     ? new Date(service.due_date).toDateString()
-                                    : new Date().toDateString(),
+                                    : null,
                                 });
                                 setShowInvoice(true);
                               }}
@@ -433,12 +443,13 @@ export const Billing = ({ userName, userRole }: clientprops) => {
                         };
 
                         if (updated[newStatus]) {
-                          updated[newStatus].push(updatedEntry);
+                          updated[newStatus].unshift(updatedEntry); 
                           setActiveTab(newStatus);
                         } else {
-                          updated["dues"].push(updatedEntry);
+                          updated["dues"].unshift(updatedEntry); 
                           setActiveTab("dues");
                         }
+
                         return updated;
                       });
 

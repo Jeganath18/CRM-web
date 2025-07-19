@@ -10,8 +10,11 @@ export const UpcomingDeadlines = () => {
   useEffect(() => {
     const getDeadline = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/get_upcoming_deadlines");
-        setDeadlines(res.data); // Set API response to state
+        const res = await axios.get(
+          "http://localhost:5000/get_upcoming_deadlines"
+        );
+        setDeadlines(res.data);
+        console.log(res.data);
       } catch (e) {
         console.error("Error fetching deadlines", e);
       }
@@ -33,13 +36,17 @@ export const UpcomingDeadlines = () => {
   };
 
   const getUrgencyIcon = (daysLeft: number) => {
-    if (daysLeft <= 3) return <AlertTriangle className="h-4 w-4 text-red-500" />;
+    if (daysLeft <= 3)
+      return <AlertTriangle className="h-4 w-4 text-red-500" />;
     if (daysLeft <= 7) return <Clock className="h-4 w-4 text-yellow-500" />;
     return <Calendar className="h-4 w-4 text-green-500" />;
   };
 
   return (
-    <Card className="animate-scale-in overflow-y-auto" style={{ maxHeight: "400px" }}>
+    <Card
+      className="animate-scale-in overflow-y-auto"
+      style={{ maxHeight: "400px" }}
+    >
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calendar className="h-5 w-5" />
@@ -58,7 +65,9 @@ export const UpcomingDeadlines = () => {
                 <h3 className="font-medium text-gray-900">{deadline.title}</h3>
                 <div className="flex items-center gap-2">
                   {getUrgencyIcon(deadline.daysLeft)}
-                  <Badge className={getPriorityColor(deadline.priority)}>{deadline.priority}</Badge>
+                  <Badge className={getPriorityColor(deadline.priority)}>
+                    {deadline.priority}
+                  </Badge>
                 </div>
               </div>
               <p className="text-sm text-gray-600">{deadline.client}</p>
@@ -67,7 +76,9 @@ export const UpcomingDeadlines = () => {
                   {new Date(deadline.date).toLocaleDateString()}
                 </span>
                 <span className="text-xs font-medium text-gray-700">
-                  {deadline.daysLeft} days left
+                  {deadline.daysLeft === 0
+                    ? "Last Day"
+                    : `${deadline.daysLeft} days left`}
                 </span>
               </div>
             </div>

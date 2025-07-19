@@ -96,6 +96,13 @@ export const LeadManagement = () => {
   const [showDropModal, setShowDropModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+  const userName = localStorage.getItem("userName");
+  const userRole = localStorage.getItem("userRole");
+
+    const SalesStaffMembers = users
+    .flatMap((group) => group.members)
+    .filter((member) => member.role === "sales_staff");
 
   const [formData, setFormData] = useState({
     company: "",
@@ -106,11 +113,17 @@ export const LeadManagement = () => {
     assignedTo: "",
   });
 
-  const serviceOptions = ["GST", "ITR", "IP", "MCA"];
+  const serviceOptions = ["GST", "ITR", "IP", "MCA", "INCORP", "FSSAI", "ISO"];
 
   const getClients = async () => {
     try {
       const res = await axios.get("http://localhost:5000/get_client_leads");
+      console.log(res.data);
+      const userRes = await axios.get(
+        "http://localhost:5000/users/team-groups"
+      );
+      const teamGroups = userRes.data; // ✅ Array of grouped users
+      setUsers(teamGroups);
       const mappedLeads = res.data.map((lead: LeadFromServer) => ({
         id: lead.id,
         name: lead.company_name,
@@ -137,6 +150,20 @@ export const LeadManagement = () => {
           grouped[stage].push(lead);
         }
       });
+      // 🟢 Prioritize user-assigned leads at top for each stage
+
+      const userRole = localStorage.getItem("userRole");
+      if (userRole === "sales_staff") {
+        Object.keys(grouped).forEach((stage) => {
+          const leadsArray = grouped[stage as keyof LeadsState];
+          grouped[stage as keyof LeadsState] = [
+            // Assigned to this user
+            ...leadsArray.filter((lead) => lead.assignedTo === userName),
+            // All other leads
+            ...leadsArray.filter((lead) => lead.assignedTo !== userName),
+          ];
+        });
+      }
       setLeads(grouped);
     } catch (err) {
       console.error("Error fetching client leads:", err);
@@ -398,11 +425,13 @@ export const LeadManagement = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Lead Management</h1>
+        <h1 className="relative inline-block text-3xl font-bold text-gray-900 after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-1 after:w-full after:bg-[#5c2dbf]">
+          Lead Management
+        </h1>
         <div className="flex gap-4">
           <Button
             onClick={() => setShowAddModal(true)}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="hover:bg-[#5c2dbf] bg-[#7b49e7]"
           >
             <Plus className="h-4 w-4 mr-2" /> Add Lead
           </Button>
@@ -425,26 +454,26 @@ export const LeadManagement = () => {
           {
             label: "New Leads",
             count: stageStats.new,
-            color: "blue",
-            icon: <UserPlus className="h-8 w-8 text-blue-500" />,
+            color: "#7b49e7",
+            icon: <UserPlus className="h-8 w-8 text-[#7b49e7]" />,
           },
           {
             label: "Contacted",
             count: stageStats.contact,
-            color: "yellow",
-            icon: <PhoneCall className="h-8 w-8 text-yellow-500" />,
+            color: "#7b49e7",
+            icon: <PhoneCall className="h-8 w-8 text-[#7b49e7]" />,
           },
           {
             label: "Converted",
             count: stageStats.converted,
-            color: "green",
-            icon: <CheckCircle2 className="h-8 w-8 text-green-500" />,
+            color: "#7b49e7",
+            icon: <CheckCircle2 className="h-8 w-8 text-[#7b49e7]" />,
           },
           {
             label: "Dropped",
             count: stageStats.dropped,
-            color: "red",
-            icon: <Ban className="h-8 w-8 text-red-500" />,
+            color: "#7b49e7",
+            icon: <Ban className="h-8 w-8 text-[#7b49e7]" />,
           },
         ].map(({ label, count, color, icon }) => (
           <Card key={label} className="animate-scale-in">
@@ -519,13 +548,25 @@ export const LeadManagement = () => {
                 setFormData({ ...formData, phone: e.target.value })
               }
             />
-            <Input
-              placeholder="Assigned To"
-              value={formData.assignedTo}
-              onChange={(e) =>
+             <div>
+              <label className="block font-medium mb-1">Assigned To:</label>
+              <select
+                className="w-full border rounded px-3 py-2"
+                disabled={localStorage.getItem("userRole")==="sales_staff"}
+                value={formData.assignedTo}
+                 onChange={(e) =>
                 setFormData({ ...formData, assignedTo: e.target.value })
               }
-            />
+               
+              >
+                <option value="">Select a user</option>
+                {SalesStaffMembers?.map((member) => (
+                  <option key={member.id} value={member.name}>
+                    {member.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div>
               <p className="text-sm font-medium text-gray-700 mb-2">
                 Select Services:
@@ -550,7 +591,7 @@ export const LeadManagement = () => {
             </div>
             <Button
               onClick={handleFormSubmit}
-              className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
+              className="w-full mt-4 hover:bg-[#5c2dbf] bg-[#7b49e7]"
             >
               {editId !== null ? "Update Lead" : "Save Lead"}
             </Button>
@@ -695,6 +736,12 @@ export const LeadManagement = () => {
                         )}
                     </div>
                   </div>
+                  {lead.assignedTo === userName &&
+                    userRole === "sales_staff" && (
+                      <Badge className="ml-2 bg-green-100 text-green-800">
+                        Assigned to You
+                      </Badge>
+                    )}
                 </CardContent>
               </Card>
             ))}
@@ -702,33 +749,37 @@ export const LeadManagement = () => {
         ))}
       </Tabs>
 
-      {showDeleteModal && (
-        <div className="fixed inset-0 flex justify-center z-50">
-          <div className="h-60 bg-white p-7 rounded-lg shadow-lg w-full max-w-sm text-center border-2 border-red-500">
-            <h2 className="text-xl font-semibold text-red-600 mb-4">
-              Are you sure you want to delete this client lead?
-            </h2>
-            <p className="text-sm text-gray-600 mb-6">
-              This action cannot be undone.
-            </p>
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={deletelead}
-                disabled={deleting}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-              >
-                {deleting ? "Deleting..." : "Delete"}
-              </button>
-            </div>
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-600">
+              Delete Client Lead
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Are you sure you want to delete this client lead? This action
+              cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex justify-center gap-4 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteModal(false)}
+              className="w-full"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={deletelead}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
       {showDropModal && (
         <div className="fixed inset-0 flex justify-center z-50">
           <div className="h-60 bg-white p-7 rounded-lg shadow-lg w-full max-w-sm text-center border-2 border-red-500">

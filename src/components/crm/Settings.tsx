@@ -77,7 +77,7 @@ export default function Settings() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7b49e7] mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading settings...</p>
         </div>
       </div>
@@ -85,14 +85,14 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-gray-50 py-4 px-2">
       <div className="max-w-8xl mx-auto">
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
               Settings
             </h1>
-            <div className="text-sm text-gray-500">Manage your Profile</div>
+          
           </div>
         </div>
 
@@ -184,7 +184,7 @@ export default function Settings() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 font-medium"
+                className="w-full hover:bg-[#5c2dbf] bg-[#7b49e7] text-white py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors duration-200 font-medium"
               >
                 Save Changes
               </button> 

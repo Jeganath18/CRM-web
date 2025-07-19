@@ -10,12 +10,14 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  SettingsIcon,
   LogOut,
   UserCircle2Icon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { CreditCardIcon } from "lucide-react";
+import Logo from "../../assets/Wealth Empires.jpg"
 
 interface SidebarProps {
   userName: string | null,
@@ -43,15 +45,15 @@ const getMenuItemsForRole = (role: string | null) => {
       return fullMenuItems;
     case "account_manager":
       return fullMenuItems.filter((item) => 
-        ["dashboard", "clients", "services", "team","analytics","settings","billing"].includes(item.id)
+        ["dashboard", "clients", "services","settings","billing"].includes(item.id)
       );
     case "sales_staff":
       return fullMenuItems.filter((item) => 
-        ["dashboard", "leads","analytics","settings","billing"].includes(item.id)
+        ["leads","settings"].includes(item.id)
       );
     case "filling_staff":
       return fullMenuItems.filter((item) => 
-        ["dashboard", "services","settings"].includes(item.id)
+        ["services","clients","settings"].includes(item.id)
       );
     default:
       return [];
@@ -85,18 +87,20 @@ export const Sidebar = ({ userName,userRole, activeTab, setActiveTab, isOpen, se
       "fixed left-0 top-0 h-full bg-white border-r border-gray-200 transition-all duration-300 z-50 flex flex-col",
       isOpen ? "w-64" : "w-16"
     )}>
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        {isOpen && (
-          <h1 className="text-xl font-bold text-gray-800 animate-fade-in">
-            Wealth Empire
-          </h1>
-        )}
-
+      <div className="flex items-center justify-between p-1 border-b border-gray-200">
+    
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="hover:bg-gray-100 rounded-lg transition-colors"
         >
-          {isOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+       
+  <img
+  src={Logo}
+  alt="Logo"
+  className={`transition-all duration-300 ${isOpen ? "h-23 w-23" : "h-20 w-20"} object-contain`}
+/>
+
+
         </button>
       </div>
 
@@ -108,9 +112,9 @@ export const Sidebar = ({ userName,userRole, activeTab, setActiveTab, isOpen, se
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               className={cn(
-                "w-full flex items-center px-4 py-3 text-left hover:bg-blue-50 transition-all duration-200",
+                "w-full flex items-center px-4 py-3 text-left hover:border-[#d6c8ea] transition-all duration-200",
                 activeTab === item.id
-                  ? "bg-blue-100 border-r-2 border-blue-500 text-blue-700"
+                  ? "bg-[#e6dcf4] border-r-2 border-[#b5a2d2] text-[#5c2dbf]"
                   : "text-gray-600"
               )}
             >
@@ -166,10 +170,10 @@ export const Sidebar = ({ userName,userRole, activeTab, setActiveTab, isOpen, se
             >
               <div className="p-1">
                 <button
-                  className="flex items-center gap-x-3 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100"
+                  className="w-full flex items-center gap-x-3 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100"
                   onClick={()=>setActiveTab("settings")}
                 >
-                  
+                  <SettingsIcon size={16} ></SettingsIcon>
                   Settings
                 </button>
                 <button
