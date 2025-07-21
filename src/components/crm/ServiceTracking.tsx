@@ -48,6 +48,7 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
   const [deletekey, setdeletekey] = useState("");
   const [users, setUsers] = useState<any[]>([]);
   const isFillingStaff = localStorage.getItem("userRole") === "filling_staff";
+  const username=localStorage.getItem("userName");
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -55,11 +56,12 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
         const res =
           userRole === "account_manager"
             ? await axios.get(
-                `http://localhost:5000/get_all_services/${userName}`
+                `http://localhost:5000/get_all_services/${username}`
               )
             : await axios.get("http://localhost:5000/get_all_services");
 
         let rows = res.data;
+        console.log(rows);
 
         const userRes = await axios.get(
           "http://localhost:5000/users/team-groups"
@@ -92,7 +94,7 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
             period: row.period,
             status: row.status,
             progress: row.progress,
-            assignedTo: row.assignedTo,
+            assignedTo: row.assignedAccountManager,
             deadline: row.deadline
               ? new Date(row.deadline).toISOString().slice(0, 10)
               : "",

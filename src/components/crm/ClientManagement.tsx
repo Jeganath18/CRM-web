@@ -5,9 +5,11 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, Edit, Trash2, Search, Plus } from "lucide-react";
+import { Eye, Edit, Trash2, Search, Plus,NotebookIcon } from "lucide-react";
 import RegisterForm from "../ui/Register_client";
 import EditClient from "../ui/edit_client";
+import { StatsCard } from "./StatsCard";
+import { Users, FileText, Clock, TrendingUp, AlertCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -45,36 +47,126 @@ export const ClientManagement = ({ userName, userRole }: ClientProps) => {
   const [deleting, setDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isAdmin = userRole ==="account_manager";  
   const isFillingStaff = userRole === "filling_staff";
-
-
+  const [stats, setStats] = useState([
+  {
+    title: "Total Clients",
+    value: "Loading...",
+    change: "",
+    icon: Users,
+    color: "blue",
+  },
+  {
+    title: "Active Services",
+    value: "Loading...",
+    change: "",
+    icon: FileText,
+    color: "green",
+  },
+  {
+    title: "Pending Tasks",
+    value: "Loading...",
+    change: "",
+    icon: Clock,
+    color: "yellow",
+  },
+  {
+    title: "Revenue",
+    value: "Loading...",
+    change: "",
+    icon: TrendingUp,
+    color: "purple",
+  },
+]);
 
   const getClients = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  try {
+    setLoading(true);
+    setError(null);
 
-      const res = userRole === "account_manager"
+    const res =
+      userRole === "account_manager"
         ? await axios.get(`http://localhost:5000/clients/${userName}`)
         : await axios.get("http://localhost:5000/clients");
 
-      const processedClients = res.data.map((client: any) => ({
-        ...client,
-        services: typeof client.services === 'string'
-          ? JSON.parse(client.services)
-          : client.services || []
-      }));
-      
-      
+    // Safely parse services for each client
+    const processedClients = res.data.map((client: any) => {
+      let services = [];
 
-      setClients(processedClients);
-    } catch (err) {
-      console.error("Error fetching clients:", err);
-      setError("Failed to fetch clients. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+      try {
+        services =
+          typeof client.services === "string"
+            ? JSON.parse(client.services)
+            : client.services || [];
+      } catch {
+        services = [];
+      }
+
+      return {
+        ...client,
+          services:
+    typeof client.services === "string"
+      ? JSON.parse(client.services)
+      : client.services || [],
+      };
+    });
+
+    setClients(processedClients);
+
+    // Calculate stats from processedClients (not old state)
+    const totalClients = processedClients.length;
+
+    const totalServices = processedClients.reduce((acc, client) => {
+  let services = [];
+
+  try {
+    services = typeof client.services === "string"
+      ? JSON.parse(client.services)
+      : client.services || [];
+  } catch {
+    services = [];
+  }
+
+  return acc + (Array.isArray(services) ? services.length : 0);
+}, 0);
+
+    const totalRevenue = processedClients.reduce((acc, client) => {
+      return acc + (client.revenue || 0);
+    }, 0);
+
+    setStats([
+      {
+        title: "Total Clients",
+        value: totalClients,
+        change: "",
+        icon: Users,
+        color: "blue",
+      },
+      {
+        title: "Total Services",
+        value: totalServices,
+        change: "",
+        icon: NotebookIcon,
+        color: "green",
+      },
+      {
+        title: "Total Revenue",
+        value: `₹${totalRevenue.toLocaleString("en-IN")}`,
+        change: "",
+        icon: TrendingUp,
+        color: "purple",
+      },
+    ]);
+  } catch (err) {
+    console.error("Error fetching clients:", err);
+    setError("Failed to fetch clients. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   useEffect(() => {
     getClients();
@@ -91,7 +183,8 @@ export const ClientManagement = ({ userName, userRole }: ClientProps) => {
       client.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.company_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.business_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (client.phone && client.phone.toLowerCase().includes(searchTerm.toLowerCase()));
+      (client.phone &&
+        client.phone.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesFilter =
       selectedFilter === "all" || client.status === selectedFilter;
@@ -108,8 +201,12 @@ export const ClientManagement = ({ userName, userRole }: ClientProps) => {
     if (!deleteClientId) return;
     setDeleting(true);
     try {
-      await axios.delete(`http://localhost:5000/delete_client/${deleteClientId}`);
-      setClients((prev) => prev.filter((client) => client.id !== deleteClientId));
+      await axios.delete(
+        `http://localhost:5000/delete_client/${deleteClientId}`
+      );
+      setClients((prev) =>
+        prev.filter((client) => client.id !== deleteClientId)
+      );
       setShowDeleteModal(false);
       setDeleteClientId(null);
     } catch (error) {
@@ -182,6 +279,13 @@ export const ClientManagement = ({ userName, userRole }: ClientProps) => {
               Client Management
             </h1>
           </div>
+{isAdmin &&
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {stats.map((stat, index) => (
+          <StatsCard key={stat.title} {...stat} index={index} />
+        ))}
+      </div>
+}
 
           <Card>
             <CardContent className="p-6">
@@ -199,7 +303,9 @@ export const ClientManagement = ({ userName, userRole }: ClientProps) => {
                   {["all", "active", "inactive"].map((filter) => (
                     <Button
                       key={filter}
-                      variant={selectedFilter === filter ? "default" : "outline"}
+                      variant={
+                        selectedFilter === filter ? "default" : "outline"
+                      }
                       onClick={() => setSelectedFilter(filter)}
                       size="sm"
                     >
@@ -254,33 +360,54 @@ export const ClientManagement = ({ userName, userRole }: ClientProps) => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      <div>
-                        <p className="text-sm text-gray-600">{client.company_email}</p>
-                        <p className="text-sm text-gray-600">{client.phone || "N/A"}</p>
+                        <p className="text-sm text-gray-600">
+                          {client.company_email}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {client.phone || "N/A"}
+                        </p>
                       </div>
 
                       <div>
-                        <p className="text-sm font-medium text-gray-700 mb-1">Services:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {client.services && client.services.length > 0 ? (
-                            client.services.map((service, idx) => (
-                              <Badge
-                                key={`${service}-${idx}`}
-                                variant="secondary"
-                                className="text-xs"
-                              >
-                                {service.toLocaleUpperCase()}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-xs text-gray-400">No services</span>
-                          )}
-                        </div>
-                      </div>
+                        <p className="text-sm font-medium text-gray-700 mb-1">
+                          Services:
+                        </p>
+<div className="flex flex-wrap gap-1">
+  {(() => {
+    let parsedServices: string[] = [];
+try {
+  if (typeof client.services === "string") {
+    parsedServices = JSON.parse(client.services);
+    console.log("String");
+  } else if (Array.isArray(client.services)) {
+    parsedServices = client.services;
+  }
+}catch (error) {
+      console.error("Invalid services data", error);
+    }
+
+    return parsedServices.length > 0 ? (
+      parsedServices.map((service, idx) => (
+        
+        <Badge
+          key={`${service}-${idx}`}
+          variant="secondary"
+          className="text-xs"
+        >
+          {service.toUpperCase()}
+        </Badge>
+      ))
+    ) : (
+      <span className="text-xs text-gray-400">No services</span>
+    );
+  })()}
+</div>
 
                       <div className="flex gap-1 text-sm">
                         <span className="text-gray-600">Industry:</span>
-                        <span className="font-medium">{client.business_type}</span>
+                        <span className="font-medium">
+                          {client.business_type}
+                        </span>
                       </div>
 
                       <div className="flex justify-between pt-3 border-t">
@@ -325,7 +452,9 @@ export const ClientManagement = ({ userName, userRole }: ClientProps) => {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Delete Client</DialogTitle>
-                <DialogDescription>This action cannot be undone!</DialogDescription>
+                <DialogDescription>
+                  This action cannot be undone!
+                </DialogDescription>
               </DialogHeader>
               <Button
                 variant="destructive"

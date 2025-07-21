@@ -45,7 +45,7 @@ const getMenuItemsForRole = (role: string | null) => {
       return fullMenuItems;
     case "account_manager":
       return fullMenuItems.filter((item) => 
-        ["dashboard", "clients", "services","settings","billing"].includes(item.id)
+        [ "clients", "services","settings","billing"].includes(item.id)
       );
     case "sales_staff":
       return fullMenuItems.filter((item) => 
@@ -110,6 +110,7 @@ export const Sidebar = ({ userName,userRole, activeTab, setActiveTab, isOpen, se
           return (
             <button
               key={item.id}
+              title={!isOpen ? item.label : undefined} 
               onClick={() => setActiveTab(item.id)}
               className={cn(
                 "w-full flex items-center px-4 py-3 text-left hover:border-[#d6c8ea] transition-all duration-200",

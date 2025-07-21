@@ -109,20 +109,25 @@ export const Dashboard = () => {
     fetchStats();
   }, []);
 
-function formatIndianShortNumber(value: number): string {
-  const format = (num: number, suffix: string) =>
-    `₹${num.toFixed(2).replace(/\.00$/, "")}${suffix}`;
+function formatIndianShortNumber(value: any): string {
+  const num = Number(value); // Ensure it's a number
 
-  if (value >= 10000000) {
-    return format(value / 10000000, "Cr");
-  } else if (value >= 100000) {
-    return format(value / 100000, "L");
-  } else if (value >= 1000) {
-    return format(value / 1000, "K");
+  if (isNaN(num)) return "₹0"; // Fallback for invalid numbers
+
+  const format = (n: number, suffix: string) =>
+    `₹${n.toFixed(2).replace(/\.00$/, "")}${suffix}`;
+
+  if (num >= 10000000) {
+    return format(num / 10000000, "Cr");
+  } else if (num >= 100000) {
+    return format(num / 100000, "L");
+  } else if (num >= 1000) {
+    return format(num / 1000, "K");
   } else {
-    return `₹${value.toFixed(2).replace(/\.00$/, "")}`;
+    return `₹${num.toFixed(2).replace(/\.00$/, "")}`;
   }
 }
+
 const data = [
   {
     name: "ITR",

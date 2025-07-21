@@ -24,45 +24,43 @@ export const ServiceStatus = () => {
         const data=res.data;
         console.log(res.data);
 
-        setservices([
-           {
-      name: "ITR",
-      completed: data[0].completed|| "",
-      total: data[0].total|| "",
-      status: data[0].status|| "",
-      deadline: data[0].deadline|| ""
-    },
-      {
-      name: "IP",
-      completed: data[1].completed|| "",
-      total: data[1].total||"",
-      status: data[1].status||"",
-      deadline: data[1].deadline||""
-    },
-      {
-      name: "ISO",
-      completed: data[2].completed||"",
-      total: data[2].total||"",
-      status: data[2].status||"",
-      deadline: data[2].deadline||""
-    },
-        {
-      name: "INCORP",
-      completed: data[3].completed||"",
-      total: data[3].total||"",
-      status: data[3].status||"",
-      deadline: data[3].deadline||""
-    },
-          {
-      name: "FSSAI",
-      completed: data[4].completed||"",
-      total: data[4].total||"",
-      status: data[4].status||"",
-      deadline: data[4].deadline||""
-    },
-        ]
-
-        )
+ setservices([
+  {
+    name: "ITR",
+    completed: data[0]?.completed || 0,
+    total: data[0]?.total || 0,
+    status: data[0]?.status || "",
+    deadline: data[0]?.deadline || ""
+  },
+  {
+    name: "IP",
+    completed: data[1]?.completed || 0,
+    total: data[1]?.total || 0,
+    status: data[1]?.status || "",
+    deadline: data[1]?.deadline || ""
+  },
+  {
+    name: "ISO",
+    completed: data[2]?.completed || 0,
+    total: data[2]?.total || 0,
+    status: data[2]?.status || "",
+    deadline: data[2]?.deadline || ""
+  },
+  {
+    name: "INCORP",
+    completed: data[3]?.completed || 0,
+    total: data[3]?.total || 0,
+    status: data[3]?.status || "",
+    deadline: data[3]?.deadline || ""
+  },
+  {
+    name: "FSSAI",
+    completed: data[4]?.completed || 0,
+    total: data[4]?.total || 0,
+    status: data[4]?.status || "",
+    deadline: data[4]?.deadline || ""
+  },
+]);
         console.log(data);
       }
       catch(e){

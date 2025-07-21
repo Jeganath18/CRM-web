@@ -100,7 +100,7 @@ export const LeadManagement = () => {
   const userName = localStorage.getItem("userName");
   const userRole = localStorage.getItem("userRole");
 
-    const SalesStaffMembers = users
+  const SalesStaffMembers = users
     .flatMap((group) => group.members)
     .filter((member) => member.role === "sales_staff");
 
@@ -122,7 +122,7 @@ export const LeadManagement = () => {
       const userRes = await axios.get(
         "http://localhost:5000/users/team-groups"
       );
-      const teamGroups = userRes.data; // ✅ Array of grouped users
+      const teamGroups = userRes.data;
       setUsers(teamGroups);
       const mappedLeads = res.data.map((lead: LeadFromServer) => ({
         id: lead.id,
@@ -130,7 +130,7 @@ export const LeadManagement = () => {
         contact: lead.owner_name,
         email: lead.email,
         phone: lead.phone,
-        services: lead.services,
+        services: JSON.parse(lead.services || []),
         value: "",
         source: "Manual",
         lastContact: lead.last_contact,
@@ -225,14 +225,13 @@ export const LeadManagement = () => {
       const nextStage = stageOrder[nextStageIndex];
 
       try {
-        console.log("About to call PATCH...");
         console.log("URL:", `http://localhost:5000/edit_lead/${leadId}`);
         console.log("Payload:", { stage_status: nextStage });
-
+         const formattedDate = new Date().toLocaleDateString("en-CA"); 
+        const formattDate = formattedDate.slice(0, 10);
         const res = await axios.patch(
           `http://localhost:5000/edit_lead/${leadId}`,
-          { stage_status: nextStage },
-          { timeout: 10000 }
+          { stage_status: nextStage,last_update: formattDate },
         );
 
         console.log("PATCH completed successfully!");
@@ -261,7 +260,7 @@ export const LeadManagement = () => {
           }
 
           console.log("Found lead to move:", leadToMove);
-          const updatedLead = { ...leadToMove, stage_status: nextStage };
+          const updatedLead = { ...leadToMove, stage_status: nextStage,lastContact: formattedDate };
 
           const newState = {
             ...updatedLeads,
@@ -548,16 +547,15 @@ export const LeadManagement = () => {
                 setFormData({ ...formData, phone: e.target.value })
               }
             />
-             <div>
+            <div>
               <label className="block font-medium mb-1">Assigned To:</label>
               <select
                 className="w-full border rounded px-3 py-2"
-                disabled={localStorage.getItem("userRole")==="sales_staff"}
+                disabled={localStorage.getItem("userRole") === "sales_staff"}
                 value={formData.assignedTo}
-                 onChange={(e) =>
-                setFormData({ ...formData, assignedTo: e.target.value })
-              }
-               
+                onChange={(e) =>
+                  setFormData({ ...formData, assignedTo: e.target.value })
+                }
               >
                 <option value="">Select a user</option>
                 {SalesStaffMembers?.map((member) => (
@@ -693,7 +691,7 @@ export const LeadManagement = () => {
                       Interested Services:
                     </p>
                     <div className="flex flex-wrap gap-1">
-                      {lead.services.map((service: string) => (
+                      {lead.services?.map((service: string) => (
                         <Badge
                           key={service}
                           variant="secondary"
@@ -701,7 +699,7 @@ export const LeadManagement = () => {
                         >
                           {service}
                         </Badge>
-                      ))}
+                      )) || null}
                     </div>
                   </div>
 

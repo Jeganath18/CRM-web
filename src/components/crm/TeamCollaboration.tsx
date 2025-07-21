@@ -215,6 +215,19 @@ export const TeamCollaboration = () => {
       </div>
 
       <Button
+      onClick={async () => {
+        try{
+          await axios.post(`http://localhost:5000/reset-password/${edituser.id}`)
+          setShoweditDialog(false);
+        }
+        catch(e){
+          alert("Change to default password is unsuccessful!");
+        }
+      }}>
+        Change default password
+      </Button>
+
+      <Button
         className="w-full mt-4"
         onClick={async () => {
           try {

@@ -25,7 +25,10 @@ const Index = ({ userName, userRole, onLogout }: IndexProps) => {
       setActiveTab("services");
     } else if (role === "sales_staff") {
       setActiveTab("leads");
-    } else {
+    } else if(role === "account_manager"){
+      setActiveTab("clients");
+    }
+    else{
       setActiveTab("dashboard");
     }
   }, []);

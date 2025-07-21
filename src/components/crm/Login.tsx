@@ -23,7 +23,7 @@ const Login = ({ onLogin }: { onLogin: (role: string, name: string) => void }) =
         localStorage.setItem("userName", data.user.name);
         onLogin(data.user.role, data.user.name);
       } else {
-        alert(data.message || "Invalid email or password");
+        seterror("Invalid email or password");
       }
     } catch (err) {
       console.error("Login error:", err);
@@ -37,7 +37,9 @@ const Login = ({ onLogin }: { onLogin: (role: string, name: string) => void }) =
         <div className="max-w-6xl w-full px-6 flex flex-col md:flex-row items-center justify-between">
           <div className="w-full md:w-1/2 text-center md:text-left mb-8 md:mb-0">
             <img src={Logo} alt="Wealthempires_logo" className="h-40 mx-auto md:mx-0" />
-            <p className="text-gray-600 mt-2 font-poppins">Secure. Simple. Seamless.</p>
+            <h3 className="text-[36px]">#We CRM</h3>
+            <h5 className="text-[20px]">The #One App for Everyone!</h5>
+            <p className="text-gray-600 mt-2 font-poppins">Simple. Secure. Seamless.</p>
           </div>
 
           <div className="w-full md:w-1/2 max-w-md bg-white shadow-md rounded-xl p-8">

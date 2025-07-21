@@ -85,8 +85,16 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
         setStatus(fetchedClient.status === "active");
 
         if (fetchedClient.services) {
-          // Set selected services
-          setSelectedServices(fetchedClient.services.data || []);
+          let parsedServices = [];
+try {
+  parsedServices = typeof fetchedClient.services.data === "string"
+    ? JSON.parse(fetchedClient.services.data)
+    : fetchedClient.services.data;
+    console.log(parsedServices);
+    setSelectedServices(parsedServices);
+} catch (e) {
+  console.error("Error parsing services.data:", e);
+}
 
           // ✅ Convert price_data array to object
           const priceMap = {};
@@ -110,17 +118,24 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
 
         // Set attached files
         if (fetchedClient.company_name) {
-          const filesRes = await axios.get(
-            `http://localhost:5000/client-files/${fetchedClient.company_name}`
-          );
-          setClientFiles(
-            filesRes.data.map((file) => ({
-              name: file.name,
-              url: `http://localhost:5000/${file.url}`,
-              type: file.name.split(".").pop()?.toLowerCase() || "file",
-            }))
-          );
-        }
+    const fetchFiles = async () => {
+      try {
+        const res = await axios.get(`http://localhost:5000/get_client_files/${fetchedClient.company_name}`);
+        console.log(res);
+        setClientFiles(
+          res.data.map((file) => ({
+            name: file.name,
+            url: file.url, // full Cloudinary secure_url
+            type: file.type?.toLowerCase() || "file",
+          }))
+        );
+      } catch (error) {
+        console.error("Error fetching client files:", error);
+      }
+    };
+
+    fetchFiles();
+};
 
         setHistory(history_of_client.data);
         const expiryMap = {};
@@ -236,7 +251,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7b49e7] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading settings...</p>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
     );
@@ -269,6 +284,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
               onChange={(e) => handleChange("company_name", e.target.value)}
               className={inputClass}
               required
+              disabled={isFillingStaff}
             />
           </div>
           <div>
@@ -278,6 +294,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
               onChange={(e) => handleChange("business_type", e.target.value)}
               className={inputClass}
               required
+              disabled={isFillingStaff}
             />
           </div>
 
@@ -287,6 +304,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
               value={client.pan || ""}
               onChange={(e) => handleChange("pan", e.target.value)}
               className={inputClass}
+              disabled={isFillingStaff}
             />
             <input
               type="file"
@@ -302,6 +320,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
                   alt="PAN Preview"
                   className="h-20 cursor-pointer"
                   onClick={() => setModalImage(existingImageUrl2)}
+                  disabled={isFillingStaff}
                 />
               </div>
             )}
@@ -312,11 +331,13 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
               value={client.gstin || ""}
               onChange={(e) => handleChange("gstin", e.target.value)}
               className={inputClass}
+              disabled={isFillingStaff}
             />
             <input
               type="file"
               accept=".jpg,.jpeg,.png,.pdf"
               onChange={handleGSTINUpload}
+              disabled={isFillingStaff}
               className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
             {existingImageUrl1 && (
@@ -326,6 +347,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
                   src={existingImageUrl1}
                   alt="GSTIN Preview"
                   className="h-20 cursor-pointer"
+                  disabled={isFillingStaff}
                   onClick={() => setModalImage(existingImageUrl1)}
                 />
               </div>
@@ -337,6 +359,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
               value={client.owner_name || ""}
               onChange={(e) => handleChange("owner_name", e.target.value)}
               className={inputClass}
+              disabled={isFillingStaff}
             />
           </div>
           <div>
@@ -347,6 +370,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
               onChange={(e) => handleChange("company_email", e.target.value)}
               className={inputClass}
               required
+              disabled={isFillingStaff}
             />
           </div>
           <div>
@@ -355,6 +379,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
               value={client.phone || ""}
               onChange={(e) => handleChange("phone", e.target.value)}
               className={inputClass}
+              disabled={isFillingStaff}
             />
           </div>
           <div className="flex items-center gap-4">
@@ -364,6 +389,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
                 className="sr-only peer"
                 checked={status}
                 onChange={() => setStatus((prev) => !prev)}
+                disabled={isFillingStaff}
               />
               <div className="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-checked:bg-blue-600 after:absolute after:top-0.5 after:left-[2px] after:bg-white after:h-5 after:w-5 after:rounded-full after:transition-all peer-checked:after:translate-x-full"></div>
             </label>
@@ -380,6 +406,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
             onChange={(e) => handleChange("address", e.target.value)}
             className={inputClass}
             rows={3}
+            disabled={isFillingStaff}
           />
         </div>
 
@@ -394,6 +421,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
                   <button
                     type="button"
                     onClick={() => toggleService(lowerService)}
+                    disabled={isFillingStaff}
                     className={`rounded-md py-2 px-4 text-sm border transition-all ${
                       selectedServices.includes(lowerService)
                         ? "bg-[#7b49e7] text-white"
@@ -418,6 +446,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
                               [lowerService]: e.target.value,
                             }))
                           }
+                          disabled={isFillingStaff}
                         />
                       </div>
                     )}
@@ -443,6 +472,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
                         [service]: e.target.value,
                       }))
                     }
+                    disabled={isFillingStaff}
                     onBlur={(e) =>
                       setServicePrices((prev) => ({
                         ...prev,
@@ -463,25 +493,53 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
                 value={total}
                 readOnly
                 className={inputClass}
+                disabled={isFillingStaff}
               />
             </div>
           </div>
         </div>
 
         {/* Shareholders Section */}
-        {Array.isArray(client.shareholders) && client.shareholders.length > 0 && (
-          <div className="bg-sky-900 p-5 rounded-xl text-white">
-            <h2 className="text-lg font-semibold mb-2">Incorporation Details</h2>
-            <ul className="mb-2 list-disc list-inside">
-              {client.shareholders.map((s, idx) => (
-                <li key={idx}>
-                  {s.name} - {s.percent}%
-                </li>
-              ))}
-            </ul>
-            {client.roc && <p>ROC: {client.roc}</p>}
-          </div>
-        )}
+{(() => {
+  let shareholders = [];
+  try {
+    shareholders = JSON.parse(client.shareholders);
+  } catch (e) {
+    console.error("Invalid JSON in client.shareholders", e);
+  }
+
+  return Array.isArray(shareholders) && shareholders.length > 0 ? (
+<div className="bg-white shadow-md rounded-2xl p-6 border border-gray-200">
+  <h2 className="text-xl font-bold text-sky-900 mb-4 border-b pb-2">
+    Incorporation Details
+  </h2>
+
+  <div className="mb-4">
+    <h3 className="text-md font-medium text-gray-700 mb-2">Shareholders</h3>
+    <ul className="space-y-2">
+      {shareholders.map((s, idx) => (
+        <li
+          key={idx}
+          className="flex justify-between items-center px-4 py-2 bg-[#e6dcf4] rounded-lg text-[#5c2dbf] shadow-sm"
+        >
+          <span className="font-semibold">{s.name}</span>
+          <span className="text-sm font-medium">{s.percent}%</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  {client.roc && (
+    <div className="mt-4">
+      <h3 className="text-md font-medium text-gray-700 mb-1">ROC Number</h3>
+      <p className="text-sm text-gray-800 bg-gray-100 rounded-lg px-3 py-2 inline-block">
+        {client.roc}
+      </p>
+    </div>
+  )}
+</div>
+  ) : null;
+})()}
 
         {/* Document Upload Section */}
         <div className="mt-6">
@@ -536,6 +594,7 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
               type="file"
               multiple
               onChange={handleFileUpload}
+              disabled={isFillingStaff}
               className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
             {newFiles.length > 0 && (
@@ -576,7 +635,9 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
           <div className="text-sm text-gray-700 grid gap-2">
             <div className="flex items-center gap-2">
               <span className="font-semibold w-28 text-gray-800">Last update on:</span>
-              <span className="text-gray-600">{entry.last_contact.slice(0, 10)}</span>
+              <span className="text-gray-600">
+  {entry.last_contact ? entry.last_contact.slice(0, 10) : "N/A"}
+</span>
             </div>
 
             <div className="flex items-center gap-2">

@@ -43,66 +43,73 @@ export const Billing = ({ userName, userRole }: clientprops) => {
   const [invoiceData, setInvoiceData] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<string>("");
-  const storedUserName = typeof window !== "undefined" ? localStorage.getItem("userName") : null;
+  const storedUserName =
+    typeof window !== "undefined" ? localStorage.getItem("userName") : null;
 
-  useState(()=>{
-  const fetchServices = async () => {
-  try {
-    const res = await axios.get("http://localhost:5000/billing_with_clients");
-    let data = res.data;
+  useState(() => {
+    const fetchServices = async () => {
+      try {
+        const res = await axios.get(
+          "http://localhost:5000/billing_with_clients"
+        );
+        let data = res.data;
+        console.log(data);
 
-    const storedUserName = typeof window !== "undefined" ? localStorage.getItem("userName") : null;
+        const storedUserName =
+          typeof window !== "undefined"
+            ? localStorage.getItem("userName")
+            : null;
 
-    // 🔒 Filter if role is account_manager
-    if (userRole === "account_manager") {
-      data = data.filter((client) => client.assignedTo === storedUserName);
-      console.log(data);
-    }
+        // 🔒 Filter if role is account_manager
+        if (userRole === "account_manager") {
+          data = data.filter((client) => client.assignedTo === storedUserName);
+          console.log(data);
+        }
 
-    const grouped: Record<string, any[]> = {
-      unpaid: [],
-      partial: [],
-      paid: [],
-      dues: [],
-    };
+        const grouped: Record<string, any[]> = {
+          unpaid: [],
+          partial: [],
+          paid: [],
+          dues: [],
+        };
 
-    for (const client of data) {
-      const entry = {
-        invoice_number: client.invoice_number,
-        client: client.company_name,
-        owner: client.owner_name,
-        email: client.company_email,
-        phone: client.phone,
-        assignedTo: client.assignedTo,
-        address: client.address,
-        status: client.status,
-        revenue: client.total_amount,
-        progress: client.progress,
-        service_type: client.services,
-        amount_paid: client.amount_paid || 0,
-        due: client.due_amount,
-        due_date: new Date(client.due_date).toISOString().split("T")[0],
-        client_id: client.client_id,
-        gst: client.gstin,
-        payment_method: client.payment_method || "",
-      };
+        for (const client of data) {
+          const entry = {
+            invoice_number: client.invoice_number,
+            client: client.company_name,
+            owner: client.owner_name,
+            email: client.company_email,
+            phone: client.phone,
+            assignedTo: client.assignedTo,
+            address: client.address,
+            status: client.status,
+            revenue: client.total_amount,
+            progress: client.progress,
+            service_type: JSON.parse(client.services),
+            amount_paid: client.amount_paid || 0,
+            due: client.due_amount,
+            due_date: new Date(client.due_date).toISOString().split("T")[0],
+            client_id: client.client_id,
+            gst: client.gstin,
+            payment_method: client.payment_mode || "",
+          };
 
-      const statusKey = client.status?.toLowerCase();
-      if (grouped[statusKey]) {
-        grouped[statusKey].push(entry);
-      } else {
-        grouped.dues.push(entry);
+          const statusKey = client.status?.toLowerCase();
+          if (grouped[statusKey]) {
+            grouped[statusKey].push(entry);
+          } else {
+            grouped.dues.push(entry);
+          }
+        }
+
+        setServices(grouped);
+        console.log(services);
+      } catch (error) {
+        console.error("❌ Failed to fetch client services:", error);
       }
-    }
-
-    setServices(grouped);
-  } catch (error) {
-    console.error("❌ Failed to fetch client services:", error);
-  }
-};
-fetchServices();
-  }
-,[]);
+    };
+    fetchServices();
+  }, []);
 
   const onClose = () => {
     setShowInvoice(false);
@@ -133,9 +140,12 @@ fetchServices();
         s.status?.toLowerCase().includes(lower)
     );
   };
-
   const togglePaymentMethod = (method: string) => {
     setPaymentMethod(method);
+    setSelectedService((prev) => ({
+      ...prev,
+      payment_method: method,
+    }));
   };
 
   return (
@@ -200,6 +210,10 @@ fetchServices();
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
+                            {/* <Badge>Payment mode: {service.payment_mode}</Badge> */}
+                            <Badge>
+                              Latest Payment mode: {service.payment_method || "N/A"}
+                            </Badge>
                             <Badge>Due Amount: {service.due}</Badge>
                             <Badge>Total amount: ₹{service.revenue}</Badge>
                           </div>
@@ -225,7 +239,7 @@ fetchServices();
                               <p className="font-medium">
                                 {Array.isArray(service.service_type)
                                   ? service.service_type
-                                      .map((s) => s.description)
+                                      .map((s) => s.description.toUpperCase())
                                       .join(", ")
                                   : "N/A"}
                               </p>
@@ -256,22 +270,22 @@ fetchServices();
                               variant="outline"
                               className="text-black hover:text-red-700"
                               onClick={() => {
+                                const parsedServices =
+                                  typeof service.service_type === "string"
+                                    ? JSON.parse(service.service_type)
+                                    : service.service_type || [];
                                 console.log(service);
                                 setInvoiceData({
                                   clientName: service.client,
                                   clientAddress: service.address,
                                   clientEmail: service.email,
                                   clientGST: service.gst || "N/A",
-                                  services: Array.isArray(service.service_type)
-                                    ? service.service_type.map(
-                                        (s) => s.description
-                                      )
-                                    : [],
-                                  amount: Array.isArray(service.service_type)
-                                    ? service.service_type.map(
-                                        (s) => s.unit_price
-                                      )
-                                    : [],
+                                  services: parsedServices.map(
+                                    (s) => s.description
+                                  ),
+                                  amount: parsedServices.map(
+                                    (s) => s.unit_price
+                                  ),
                                   invoiceId: `2025-${service.invoice_number}`,
                                   issueDate: new Date().toDateString(),
                                   dueDate: service.due_date
@@ -288,8 +302,10 @@ fetchServices();
                               size="sm"
                               variant="outline"
                               onClick={() => {
-                                setSelectedService(service);
-                                setPaymentMethod(service.payment_method || []);
+                                setSelectedService({
+                                  ...service,
+                                  payment_method: service.payment_method || "",
+                                });
                                 setShowViewDialog(true);
                               }}
                             >
@@ -392,8 +408,9 @@ fetchServices();
                   onClick={async () => {
                     try {
                       const total_Paid =
-                        parseFloat(selectedService.add_payment) +
-                        parseFloat(selectedService.amount_paid);
+                        parseFloat(selectedService.add_payment || 0) +
+                        parseFloat(selectedService.amount_paid || 0);
+
                       const statusKey = (paid, total, deadline) => {
                         const today = new Date();
                         const due = new Date(deadline);
@@ -410,7 +427,7 @@ fetchServices();
                           total_payment: selectedService.revenue,
                           payment: total_Paid,
                           deadline: selectedService.due_date,
-                          payment_method: paymentMethod,
+                          payment_method: selectedService.payment_method,
                         }
                       );
 
@@ -428,6 +445,11 @@ fetchServices();
                         const updatedEntry = {
                           ...selectedService,
                           amount_paid: total_Paid,
+                          due: parseFloat(
+                            (
+                              parseFloat(selectedService.revenue) - total_Paid
+                            ).toFixed(2)
+                          ),
                           status: newStatus,
                           progress: Math.min(
                             100,
@@ -439,19 +461,30 @@ fetchServices();
                               ).toFixed(2)
                             )
                           ),
-                          payment_method: paymentMethod,
+                          payment_method: selectedService.payment_method,
                         };
 
                         if (updated[newStatus]) {
-                          updated[newStatus].unshift(updatedEntry); 
+                          updated[newStatus].unshift(updatedEntry);
                           setActiveTab(newStatus);
                         } else {
-                          updated["dues"].unshift(updatedEntry); 
+                          updated["dues"].unshift(updatedEntry);
                           setActiveTab("dues");
                         }
 
                         return updated;
                       });
+
+                      // ✅ FIX HERE: Update local selectedService UI state
+                      setSelectedService((prev) => ({
+                        ...prev,
+                        amount_paid: total_Paid,
+                        due: parseFloat(
+                          (
+                            parseFloat(selectedService.revenue) - total_Paid
+                          ).toFixed(2)
+                        ),
+                      }));
 
                       setShowViewDialog(false);
                     } catch (err) {
