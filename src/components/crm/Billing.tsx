@@ -50,7 +50,7 @@ export const Billing = ({ userName, userRole }: clientprops) => {
     const fetchServices = async () => {
       try {
         const res = await axios.get(
-          "http://localhost:5000/billing_with_clients"
+          "https://crm-server-three.vercel.app/billing_with_clients"
         );
         let data = res.data;
         console.log(data);
@@ -88,7 +88,7 @@ export const Billing = ({ userName, userRole }: clientprops) => {
             service_type: JSON.parse(client.services),
             amount_paid: client.amount_paid || 0,
             due: client.due_amount,
-            due_date: new Date(client.due_date).toISOString().split("T")[0],
+            due_date: client.due_date||null,
             client_id: client.client_id,
             gst: client.gstin,
             payment_method: client.payment_mode || "",
@@ -422,7 +422,7 @@ export const Billing = ({ userName, userRole }: clientprops) => {
                       };
 
                       await axios.patch(
-                        `http://localhost:5000/update_payment/${selectedService.client_id}`,
+                        `https://crm-server-three.vercel.app/update_payment/${selectedService.client_id}`,
                         {
                           total_payment: selectedService.revenue,
                           payment: total_Paid,

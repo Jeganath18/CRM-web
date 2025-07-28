@@ -12,14 +12,14 @@ export default function RegisterForm({ onClose }: RegisterFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("");
-  const [loading, setLoading] = useState(false); // 🔄 Loading state
+  const [loading, setLoading] = useState(false); 
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true); // 🔄 Start spinner
 
     try {
-      const response = await axios.post("http://localhost:5000/register", {
+      const response = await axios.post("https://crm-server-three.vercel.app/register", {
         name,
         email,
         role,

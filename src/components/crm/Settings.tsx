@@ -22,7 +22,7 @@ export default function Settings() {
         await new Promise(resolve => setTimeout(resolve, 1000));
          const user = localStorage.getItem("userName");
       try {
-        const res = await axios.get(`http://localhost:5000/get_user/${user}`);
+        const res = await axios.get(`https://crm-server-three.vercel.app/get_user/${user}`);
         console.log(res.data);
        if (res.data && res.data.length > 0) {
   const userData = res.data[0];
@@ -64,7 +64,7 @@ export default function Settings() {
 
       console.log("Submitting:", body);
       // Replace with actual API call
-      const response = await axios.post("http://localhost:5000/update_profile", body);
+      const response = await axios.post("https://crm-server-three.vercel.app/update_profile", body);
       localStorage.setItem("user", formData.name);
       alert("Profile updated successfully!");
     } catch (error) {

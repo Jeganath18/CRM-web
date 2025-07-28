@@ -27,7 +27,7 @@ interface clientprops {
   userName: string | null;
 }
 
-export const ServiceTracking = ({ userName, userRole }: clientprops) => {
+export const ServiceTracking = ({ userName }: clientprops) => {
   const [services, setServices] = useState({
     incorp: [],
     gst: [],
@@ -48,74 +48,79 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
   const [deletekey, setdeletekey] = useState("");
   const [users, setUsers] = useState<any[]>([]);
   const isFillingStaff = localStorage.getItem("userRole") === "filling_staff";
-  const username=localStorage.getItem("userName");
+  const username = localStorage.getItem("userName");
+  const userRole = localStorage.getItem("userRole");
 
   useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const res =
-          userRole === "account_manager"
-            ? await axios.get(
-                `http://localhost:5000/get_all_services/${username}`
-              )
-            : await axios.get("http://localhost:5000/get_all_services");
+  const fetchServices = async () => {
+    try {
+      const res =
+        userRole === "account_manager"
+          ? await axios.get(`https://crm-server-three.vercel.app/get_all_services/${username}`)
+          : await axios.get("https://crm-server-three.vercel.app/get_all_services");
 
-        let rows = res.data;
-        console.log(rows);
+      let rows = res.data;
+      console.log("📦 Raw rows:", rows);
 
-        const userRes = await axios.get(
-          "http://localhost:5000/users/team-groups"
+      const userRes = await axios.get("https://crm-server-three.vercel.app/users/team-groups");
+      const teamGroups = userRes.data;
+      setUsers(teamGroups);
+
+      // ✅ Filter rows if filling_staff
+      if (userRole === "filling_staff" && userName) {
+        rows = rows.filter((row) => row.assignedTo === userName);
+
+        // ✅ Extract unique client names and store in localStorage
+        const assignedClientNames = Array.from(
+          new Set(rows.map((row) => row.client))
         );
-        const teamGroups = userRes.data; // ✅ Array of grouped users
-        setUsers(teamGroups);
-        console.log("✅ Team Groups:", teamGroups);
+        localStorage.setItem(
+          "assignedClients",
+          JSON.stringify(assignedClientNames)
+        );
 
-        console.log("🧑‍💼 Filling Staff:", fillingStaffMembers);
+        console.log("🧾 Assigned Clients:", assignedClientNames);
+      }
 
-        // ✅ Restrict view if role is filling_staff
-        if (userRole === "filling_staff" && userName) {
-          rows = rows.filter((row) => row.assignedTo === userName);
-        }
+      const grouped = {
+        incorp: [],
+        gst: [],
+        itr: [],
+        mca: [],
+        ip: [],
+        iso: [],
+        fssai: [],
+      };
 
-        const grouped = {
-          incorp: [],
-          gst: [],
-          itr: [],
-          mca: [],
-          ip: [],
-          iso: [],
-          fssai: [],
+      for (const row of rows) {
+        const entry = {
+          id: row.service_id,
+          client: row.client,
+          period: row.period,
+          status: row.status,
+          progress: row.progress,
+          assignedTo: row.assignedAccountManager,
+          deadline: row.deadline
+            ? new Date(row.deadline).toISOString().slice(0, 10)
+            : "",
+          priority: row.priority,
         };
 
-        for (const row of rows) {
-          const entry = {
-            id: row.service_id,
-            client: row.client,
-            period: row.period,
-            status: row.status,
-            progress: row.progress,
-            assignedTo: row.assignedAccountManager,
-            deadline: row.deadline
-              ? new Date(row.deadline).toISOString().slice(0, 10)
-              : "",
-            priority: row.priority,
-          };
+        const serviceType = row.service_type?.trim().toLowerCase();
 
-          if (grouped[row.service_type]) {
-            grouped[row.service_type].unshift(entry);
-          } else {
-            grouped[row.service_type] = [entry];
-          }
+        if (grouped[serviceType]) {
+          grouped[serviceType].unshift(entry);
         }
-
-        setServices(grouped);
-      } catch (error) {
-        console.error("❌ Failed to fetch services:", error);
       }
-    };
 
-    fetchServices();
-  }, []);
+      setServices(grouped);
+    } catch (error) {
+      console.error("❌ Failed to fetch services:", error);
+    }
+  };
+
+  fetchServices();
+}, []);
 
   const fillingStaffMembers = users
     .flatMap((group) => group.members)
@@ -181,6 +186,12 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
     setdeletekey(service_type);
   };
 
+  const totalAssigned = Object.values(services).reduce(
+  (acc, curr) => acc + curr.length,
+  0
+);
+
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -190,39 +201,36 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
       </div>
 
       {isFillingStaff && (
-  <Card className="mt-4">
-    <CardContent className="p-6">
-      <h2 className="text-lg font-semibold mb-4">Your Service Summary</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {Object.entries(services).map(([type, list]) => {
-          const userTasks = list.filter(
-            (item) => item.assignedTo === userName
-          );
-          return (
-            <div
-              key={type}
-              className="p-4 rounded-lg border shadow-sm bg-gray-50"
-            >
-              <p className="text-sm text-gray-600 capitalize">{type.toLocaleUpperCase()}</p>
-              <p className="text-xl font-bold text-[#5c2dbf]">
-                {userTasks.length}
-              </p>
+        <Card className="mt-4">
+          <CardContent className="p-6">
+            <h2 className="text-lg font-semibold mb-4">Your Service Summary</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {Object.entries(services).map(([type, list]) => {
+                const userTasks = list;
+                return (
+                  <div
+                    key={type}
+                    className="p-4 rounded-lg border shadow-sm bg-gray-50"
+                  >
+                    <p className="text-sm text-gray-600 capitalize">
+                      {type.toLocaleUpperCase()}
+                    </p>
+                    <p className="text-xl font-bold text-[#5c2dbf]">
+                      {userTasks.length}
+                    </p>
+                  </div>
+                );
+              })}
+              <div className="p-4 rounded-lg border shadow-sm bg-gray-50 col-span-2 sm:col-span-1">
+                <p className="text-sm text-gray-600">Total Assigned</p>
+                <p className="text-xl font-bold text-green-600">
+                   {totalAssigned}
+                </p>
+              </div>
             </div>
-          );
-        })}
-        <div className="p-4 rounded-lg border shadow-sm bg-gray-50 col-span-2 sm:col-span-1">
-          <p className="text-sm text-gray-600">Total Assigned</p>
-          <p className="text-xl font-bold text-green-600">
-            {Object.values(services)
-              .flat()
-              .filter((item) => item.assignedTo === userName).length}
-          </p>
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-)}
-
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="p-6">
@@ -273,7 +281,14 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
                       </div>
                       <div className="flex items-center space-x-2">
                         <Badge className={getStatusColor(service.status)}>
-                          {service.status}
+                          <p>
+                            {service?.status === "approval"
+                              ? "Approved"
+                              : selectedService?.status
+                              ? selectedService.status.charAt(0).toUpperCase() +
+                                selectedService.status.slice(1)
+                              : ""}
+                          </p>
                         </Badge>
                         {service.progress < 100 && (
                           <Badge className={getPriorityColor(service.priority)}>
@@ -294,7 +309,7 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
                         <Progress value={service.progress} className="h-2" />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                     {!isFillingStaff &&( <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-gray-600">Assigned to:</span>
                           <p className="font-medium">{service.assignedTo}</p>
@@ -306,7 +321,7 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
                           </span>
                           <p className="font-medium">{service.deadline}</p>
                         </div>
-                      </div>
+                      </div>)}
 
                       <div className="flex justify-end space-x-2">
                         <Button
@@ -355,7 +370,7 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
           if (!open && selectedService) {
             axios
               .patch(
-                `http://localhost:5000/update_service/${selectedService.id}`,
+                `https://crm-server-three.vercel.app/update_service/${selectedService.id}`,
                 {
                   assignedTo: selectedService.assignedTo,
                   deadline: selectedService.deadline,
@@ -377,41 +392,6 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
               Details for <strong>{selectedService?.client}</strong>
             </DialogDescription>
           </DialogHeader>
-          {isFillingStaff && (
-  <Card className="mt-4">
-    <CardContent className="p-6">
-      <h2 className="text-lg font-semibold mb-4">Your Service Summary</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {Object.entries(services).map(([type, list]) => {
-          const userTasks = list.filter(
-            (item) => item.assignedTo === userName
-          );
-          return (
-            <div
-              key={type}
-              className="p-4 rounded-lg border shadow-sm bg-gray-50"
-            >
-              <p className="text-sm text-gray-600 capitalize">{type}</p>
-              <p className="text-xl font-bold text-[#5c2dbf]">
-                {userTasks.length}
-              </p>
-            </div>
-          );
-        })}
-        <div className="p-4 rounded-lg border shadow-sm bg-gray-50 col-span-2 sm:col-span-1">
-          <p className="text-sm text-gray-600">Total Assigned</p>
-          <p className="text-xl font-bold text-green-600">
-            {Object.values(services)
-              .flat()
-              .filter((item) => item.assignedTo === userName).length}
-          </p>
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-)}
-
-
           <div className="space-y-4 text-sm">
             <div>
               <label className="block font-medium">Status:</label>
@@ -423,7 +403,7 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
               <p>{selectedService?.progress}%</p>
             </div>
 
-            <div>
+      { !isFillingStaff && ( <div>
               <label className="block font-medium mb-1">Assigned To:</label>
               <select
                 className="w-full border rounded px-3 py-2"
@@ -443,7 +423,7 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
                   </option>
                 ))}
               </select>
-            </div>
+            </div>)}
 
             <div>
               <label className="block font-medium">Deadline:</label>
@@ -472,45 +452,49 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
               <p>{selectedService?.priority}</p>
             </div>
 
-            {!isFillingStaff && <Button
-              className="w-full mt-4"
-              onClick={async () => {
-                try {
-                  const deadlineDate = new Date(selectedService.deadline);
-                  const today = new Date();
-                  const timeDiff = deadlineDate - today;
-                  const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-
-                  let priority = "low";
-                  if (daysLeft < 5) priority = "high";
-                  else if (daysLeft < 15) priority = "medium";
-
-                  await axios.patch(
-                    `http://localhost:5000/update_service/${selectedService.id}`,
-                    {
-                      assignedTo: selectedService.assignedTo,
-                      deadline: selectedService.deadline,
-                    }
-                  );
-
-                  setServices((prev) => {
-                    const updated = { ...prev };
-                    updated[activeTab] = updated[activeTab].map((s) =>
-                      s.id === selectedService.id
-                        ? { ...s, ...selectedService, priority }
-                        : s
+            {!isFillingStaff && (
+              <Button
+                className="w-full mt-4"
+                onClick={async () => {
+                  try {
+                    const deadlineDate = new Date(selectedService.deadline);
+                    const today = new Date();
+                    const timeDiff = deadlineDate - today;
+                    const daysLeft = Math.ceil(
+                      timeDiff / (1000 * 60 * 60 * 24)
                     );
-                    return updated;
-                  });
 
-                  setShowViewDialog(false);
-                } catch (err) {
-                  console.error("❌ Failed to update:", err);
-                }
-              }}
-            >
-              Save
-            </Button>}
+                    let priority = "low";
+                    if (daysLeft < 5) priority = "high";
+                    else if (daysLeft < 15) priority = "medium";
+
+                    await axios.patch(
+                      `https://crm-server-three.vercel.app/update_service/${selectedService.id}`,
+                      {
+                        assignedTo: selectedService.assignedTo,
+                        deadline: selectedService.deadline,
+                      }
+                    );
+
+                    setServices((prev) => {
+                      const updated = { ...prev };
+                      updated[activeTab] = updated[activeTab].map((s) =>
+                        s.id === selectedService.id
+                          ? { ...s, ...selectedService, priority }
+                          : s
+                      );
+                      return updated;
+                    });
+
+                    setShowViewDialog(false);
+                  } catch (err) {
+                    console.error("❌ Failed to update:", err);
+                  }
+                }}
+              >
+                Save
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -568,8 +552,8 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
                 <>
                   <option value="started">Started</option>
                   <option value="documentation">Documentation</option>
-                  <option value="filling">Filling</option>
-                  <option value="approval">Approval</option>
+                  <option value="filling">Filing</option>
+                  <option value="approval">Approved</option>
                 </>
               )}
             </select>
@@ -585,7 +569,7 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
                 };
                 try {
                   await axios.patch(
-                    `http://localhost:5000/update_status/${selectedService.id}`,
+                    `https://crm-server-three.vercel.app/update_status/${selectedService.id}`,
                     {
                       id: selectedService.id,
                       status: selectedService.status,
@@ -626,7 +610,7 @@ export const ServiceTracking = ({ userName, userRole }: clientprops) => {
             className="w-full mt-2"
             onClick={async () => {
               try {
-                await axios.delete("http://localhost:5000/delete_service", {
+                await axios.delete("https://crm-server-three.vercel.app/delete_service", {
                   data: {
                     client_id: deleteid,
                     section: deletekey,

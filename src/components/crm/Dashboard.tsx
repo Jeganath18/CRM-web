@@ -11,7 +11,6 @@ import { CheckCircle } from "lucide-react";
 
 
 export const Dashboard = () => {
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const alerts = [
   {
     id: 1,
@@ -61,14 +60,14 @@ export const Dashboard = () => {
    useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/dashboard_stats");
+        const res = await axios.get("https://crm-server-three.vercel.app/dashboard_stats");
         const data = res.data;
 
         setStats([
           {
             title: "Total Clients",
             value: data.total_clients.toString(),
-            change: "+12%", // You can make this dynamic if needed
+            change: "+12%", 
             icon: Users,
             color: "blue",
           },
@@ -100,7 +99,7 @@ export const Dashboard = () => {
     };
 
     const fetchdues = async () => {
-       const res = await axios.get("http://localhost:5000/dashboard_stats");
+       const res = await axios.get("https://crm-server-three.vercel.app/dashboard_stats");
        const data = res.data;
 
     }
@@ -109,7 +108,7 @@ export const Dashboard = () => {
     fetchStats();
   }, []);
 
-function formatIndianShortNumber(value: any): string {
+function formatIndianShortNumber(value): string {
   const num = Number(value); // Ensure it's a number
 
   if (isNaN(num)) return "₹0"; // Fallback for invalid numbers

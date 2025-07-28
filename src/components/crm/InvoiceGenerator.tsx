@@ -95,11 +95,11 @@ const InvoicePreview = ({
 
         {/* Invoice Box */}
         <div ref={contentRef} className="mb-10">
-        <div className="w-[700px] mx-auto border border-gray-700 rounded-lg p-5"  id="Invoice">
+        <div className="w-[700px] mx-auto rounded-lg p-5"  id="Invoice">
           <div className="flex justify-between items-start">
             <img src={defaultLogo} alt="Company Logo" className="h-40" />
             <div className="text-right">
-              <p className="text-lg font-semibold text-gray-800">Invoice {invoiceId}</p>
+              <p className="text-xl font-semibold text-gray-800">Invoice {invoiceId}</p>
               <p className="text-sm text-gray-800">Issued at: {issueDate}</p>
               <p className="text-sm text-gray-800">Due at: {dueDate}</p>
               <p className="text-sm text-gray-800">Late fee: 0.50%</p>
@@ -108,13 +108,13 @@ const InvoicePreview = ({
 
           <div className="flex justify-between mb-10 text-sm">
             <div>
-              <p className="font-bold text-gray-800">{clientName}</p>
+              <p className="font-bold text-gray-800 text-lg">{clientName}</p>
               <p className="text-gray-800 w-[200px]">{clientAddress}</p>
               <p className="text-gray-800">{clientEmail}</p>
               <p className="text-gray-800">GST: {clientGST}</p>
             </div>
             <div className="text-right">
-              <p className="font-bold text-gray-800">Wealth Empires</p>
+              <p className="font-bold text-gray-800 text-lg">Wealth Empires</p>
               <p className="text-gray-800">Greenways Bussiness Park, Chennai</p>
               <p className="text-gray-800">Tamilnadu, India</p>
               <p className="text-gray-800">support@wealthempires.in</p>
@@ -125,10 +125,10 @@ const InvoicePreview = ({
 <table className="w-full text-sm mb-10">
   <thead className="text-gray-800">
     <tr>
-      <th className="text-left py-2">Services</th>
-      <th className="text-right py-2 px-0">Price</th>
-      <th className="text-right py-2 px-0">TAX (18%)</th>
-      <th className="text-right py-2 px-0">Total</th>
+      <th className="text-left py-2 text-lg">Services</th>
+      <th className="text-right py-2 px-0 text-lg">Price</th>
+      <th className="text-right py-2 px-0 text-lg">TAX (18%)</th>
+      <th className="text-right py-2 px-0 text-lg">Total</th>
     </tr>
   </thead>
   <tbody>
@@ -162,7 +162,7 @@ const InvoicePreview = ({
 </p>
           </div>
 
-          <div className="mt-10 border-t border-gray-700 pt-4 text-sm text-gray-800">
+          <div className="mt-10 pt-4 text-sm text-gray-800">
             <p className="font-semibold mb-1">Payment Details</p>
             <p>Account number 1692500100759601</p>
             <p>IFSC KARB0000169</p>

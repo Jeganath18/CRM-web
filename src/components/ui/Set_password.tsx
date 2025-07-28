@@ -30,7 +30,7 @@ export default function SetPassword() {
 
     try {
       setStatus("loading");
-      const res = await axios.post("http://localhost:5000/set-password", {
+      const res = await axios.post("https://crm-server-three.vercel.app/set-password", {
         email,
         token,
         password,

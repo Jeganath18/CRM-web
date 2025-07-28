@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { Trash2 } from "lucide-react";
 
 interface EditClientProps {
   onClose: () => void;
@@ -70,13 +71,14 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
   const [servicePrices, setServicePrices] = useState({});
   const [expiryDates, setExpiryDates] = useState<Record<string, string>>({});
   const isFillingStaff = localStorage.getItem("userRole") === "filling_staff";
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchClient = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/client/${clientId}`);
+        const res = await axios.get(`https://crm-server-three.vercel.app/client/${clientId}`);
         const history_of_client = await axios.get(
-          `http://localhost:5000/get_client_history/${clientId}`
+          `https://crm-server-three.vercel.app/get_client_history/${clientId}`
         );
         const fetchedClient = res.data;
         console.log("✅ Fetched client:", fetchedClient);
@@ -86,17 +88,16 @@ export default function EditClient({ onClose, clientId }: EditClientProps) {
 
         if (fetchedClient.services) {
           let parsedServices = [];
-try {
-  parsedServices = typeof fetchedClient.services.data === "string"
-    ? JSON.parse(fetchedClient.services.data)
-    : fetchedClient.services.data;
-    console.log(parsedServices);
-    setSelectedServices(parsedServices);
-} catch (e) {
-  console.error("Error parsing services.data:", e);
-}
+          try {
+            parsedServices =
+              typeof fetchedClient.services.data === "string"
+                ? JSON.parse(fetchedClient.services.data)
+                : fetchedClient.services.data;
+            setSelectedServices(parsedServices);
+          } catch (e) {
+            console.error("Error parsing services.data:", e);
+          }
 
-          // ✅ Convert price_data array to object
           const priceMap = {};
           fetchedClient.services.price_data?.forEach((item) => {
             priceMap[item.service] = item.price;
@@ -104,38 +105,43 @@ try {
           setServicePrices(priceMap);
         }
 
-        // Set file preview URLs
         if (fetchedClient.gstin_file) {
           setExistingImageUrl1(
-            `http://localhost:5000/${fetchedClient.gstin_file}`
+            `https://crm-server-three.vercel.app/${fetchedClient.gstin_file}`
           );
         }
         if (fetchedClient.pan_file) {
           setExistingImageUrl2(
-            `http://localhost:5000/${fetchedClient.pan_file}`
+            `https://crm-server-three.vercel.app/${fetchedClient.pan_file}`
           );
         }
 
-        // Set attached files
+        // === CLOUDINARY FILE FETCHING LOGIC STARTS HERE ===
+        // This block triggers fetching the client's documents from your backend.
         if (fetchedClient.company_name) {
-    const fetchFiles = async () => {
-      try {
-        const res = await axios.get(`http://localhost:5000/get_client_files/${fetchedClient.company_name}`);
-        console.log(res);
-        setClientFiles(
-          res.data.map((file) => ({
-            name: file.name,
-            url: file.url, // full Cloudinary secure_url
-            type: file.type?.toLowerCase() || "file",
-          }))
-        );
-      } catch (error) {
-        console.error("Error fetching client files:", error);
-      }
-    };
+          const fetchFiles = async () => {
+            try {
+              // This endpoint on your server should fetch file URLs from Cloudinary.
+              const res = await axios.get(
+                `https://crm-server-three.vercel.app/get_client_files/${fetchedClient.company_name}`
+              );
+              console.log("Fetched Cloudinary Files:", res.data);
 
-    fetchFiles();
-};
+              
+              setClientFiles(
+                res.data.map((file) => ({
+                  name: file.name,
+                  url: file.url, 
+                  type: file.type?.toLowerCase() || "file", 
+                }))
+              );
+            } catch (error) {
+              console.error("Error fetching client files from backend:", error);
+            }
+          };
+
+          fetchFiles();
+        }
 
         setHistory(history_of_client.data);
         const expiryMap = {};
@@ -188,43 +194,49 @@ try {
     .filter(([service]) => selectedServices.includes(service))
     .reduce((sum, [_, price]) => sum + (parseFloat(price) || 0), 0);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!client) return;
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  if (!client) return;
 
-    const formData = new FormData();
-    formData.append("company_name", client.company_name);
-    formData.append("business_type", client.business_type);
-    formData.append("pan", client.pan || "");
-    formData.append("gstin", client.gstin || "");
-    formData.append("owner_name", client.owner_name || "");
-    formData.append("company_email", client.company_email);
-    formData.append("phone", client.phone || "");
-    formData.append("address", client.address || "");
-    formData.append("status", status ? "active" : "inactive");
-    formData.append("services", JSON.stringify(selectedServices));
-    formData.append("revenue", total.toString());
-    formData.append("service_prices", JSON.stringify(servicePrices));
-    formData.append("expiry_dates", JSON.stringify(expiryDates));
+  // 1. Set loading to true to show the spinner
+  setLoading(true); 
 
-    if (GSTIN) formData.append("gstin_file", GSTIN);
-    if (PAN) formData.append("pan_file", PAN);
+  const formData = new FormData();
+  formData.append("company_name", client.company_name);
+  formData.append("business_type", client.business_type);
+  formData.append("pan", client.pan || "");
+  formData.append("gstin", client.gstin || "");
+  formData.append("owner_name", client.owner_name || "");
+  formData.append("company_email", client.company_email);
+  formData.append("phone", client.phone || "");
+  formData.append("address", client.address || "");
+  formData.append("status", status ? "active" : "inactive");
+  formData.append("services", JSON.stringify(selectedServices));
+  formData.append("revenue", total.toString());
+  formData.append("service_prices", JSON.stringify(servicePrices));
+  formData.append("expiry_dates", JSON.stringify(expiryDates));
 
-    newFiles.forEach((file) => {
-      formData.append("files", file);
-    });
+  if (GSTIN) formData.append("gstin_file", GSTIN);
+  if (PAN) formData.append("pan_file", PAN);
 
-    try {
-      await axios.patch(
-        `http://localhost:5000/edit_client/${clientId}`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-      onClose();
-    } catch (error) {
-      console.error("Failed to update client:", error);
-    }
-  };
+  newFiles.forEach((file) => {
+    formData.append("files", file);
+  });
+
+  try {
+    await axios.patch(
+      `https://crm-server-three.vercel.app/edit_client/${clientId}`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    onClose();
+  } catch (error) {
+    console.error("Failed to update client:", error);
+  } finally {
+    // 2. Set loading to false after the request is complete
+    setLoading(false);
+  }
+};
 
   const getFileIcon = (type: string) => {
     switch (type) {
@@ -272,8 +284,11 @@ try {
       </button>
 
       <form className="space-y-6" onSubmit={handleSubmit}>
-     
-        {!isFillingStaff ?    <h1 className="text-3xl font-bold mb-4 text-gray-900">Edit Client</h1> :  <h1 className="text-3xl font-bold mb-4 text-gray-900">View Client</h1>}
+        {!isFillingStaff ? (
+          <h1 className="text-3xl font-bold mb-4 text-gray-900">Edit Client</h1>
+        ) : (
+          <h1 className="text-3xl font-bold mb-4 text-gray-900">View Client</h1>
+        )}
 
         {/* Basic Information Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -306,24 +321,6 @@ try {
               className={inputClass}
               disabled={isFillingStaff}
             />
-            <input
-              type="file"
-              accept=".jpg,.jpeg,.png,.pdf"
-              onChange={handlePANUpload}
-              className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-            />
-            {existingImageUrl2 && (
-              <div className="mt-2">
-                <p className="text-sm">Current PAN:</p>
-                <img
-                  src={existingImageUrl2}
-                  alt="PAN Preview"
-                  className="h-20 cursor-pointer"
-                  onClick={() => setModalImage(existingImageUrl2)}
-                  disabled={isFillingStaff}
-                />
-              </div>
-            )}
           </div>
           <div>
             <label>GSTIN</label>
@@ -333,25 +330,6 @@ try {
               className={inputClass}
               disabled={isFillingStaff}
             />
-            <input
-              type="file"
-              accept=".jpg,.jpeg,.png,.pdf"
-              onChange={handleGSTINUpload}
-              disabled={isFillingStaff}
-              className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-            />
-            {existingImageUrl1 && (
-              <div className="mt-2">
-                <p className="text-sm">Current GSTIN:</p>
-                <img
-                  src={existingImageUrl1}
-                  alt="GSTIN Preview"
-                  className="h-20 cursor-pointer"
-                  disabled={isFillingStaff}
-                  onClick={() => setModalImage(existingImageUrl1)}
-                />
-              </div>
-            )}
           </div>
           <div>
             <label>Owner Name</label>
@@ -414,54 +392,58 @@ try {
         <div>
           <h3 className="text-lg font-medium mb-3">Services</h3>
           <div className="flex flex-wrap gap-4 mb-6">
-            {["INCORP", "GST", "ITR", "MCA", "IP", "ISO", "FSSAI"].map((service) => {
-              const lowerService = service.toLowerCase();
-              return (
-                <div key={service} className="flex flex-col">
-                  <button
-                    type="button"
-                    onClick={() => toggleService(lowerService)}
-                    disabled={isFillingStaff}
-                    className={`rounded-md py-2 px-4 text-sm border transition-all ${
-                      selectedServices.includes(lowerService)
-                        ? "bg-[#7b49e7] text-white"
-                        : "bg-white text-slate-600 border-gray-300 hover:bg-[#7b49e7] hover:text-white"
-                    }`}
-                  >
-                    {service}
-                  </button>
+            {["INCORP", "GST", "ITR", "MCA", "IP", "ISO", "FSSAI"].map(
+              (service) => {
+                const lowerService = service.toLowerCase();
+                return (
+                  <div key={service} className="flex flex-col">
+                    <button
+                      type="button"
+                      onClick={() => toggleService(lowerService)}
+                      disabled={isFillingStaff}
+                      className={`rounded-md py-2 px-4 text-sm border transition-all ${
+                        selectedServices.includes(lowerService)
+                          ? "bg-[#7b49e7] text-white"
+                          : "bg-white text-slate-600 border-gray-300 hover:bg-[#7b49e7] hover:text-white"
+                      }`}
+                    >
+                      {service}
+                    </button>
 
-                  {/* Show expiry input only if selected and is ip/iso/fssai */}
-                  {["ip", "iso", "fssai"].includes(lowerService) &&
-                    selectedServices.includes(lowerService) && (
-                      <div className="mt-1">
-                        <label className="text-xs text-gray-700">Expiry Date</label>
-                        <input
-                          type="date"
-                          className="border rounded px-2 py-1 text-sm"
-                          value={expiryDates?.[lowerService] || ""}
-                          onChange={(e) =>
-                            setExpiryDates((prev) => ({
-                              ...prev,
-                              [lowerService]: e.target.value,
-                            }))
-                          }
-                          disabled={isFillingStaff}
-                        />
-                      </div>
-                    )}
-                </div>
-              );
-            })}
+                    {["ip", "iso", "fssai"].includes(lowerService) &&
+                      selectedServices.includes(lowerService) && (
+                        <div className="mt-1">
+                          <label className="text-xs text-gray-700">
+                            Expiry Date
+                          </label>
+                          <input
+                            type="date"
+                            className="border rounded px-2 py-1 text-sm"
+                            value={expiryDates?.[lowerService] || ""}
+                            onChange={(e) =>
+                              setExpiryDates((prev) => ({
+                                ...prev,
+                                [lowerService]: e.target.value,
+                              }))
+                            }
+                            disabled={isFillingStaff}
+                          />
+                        </div>
+                      )}
+                  </div>
+                );
+              }
+            )}
           </div>
 
-          {/* Service Prices */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Service Prices (₹)</h3>
             <div className="space-y-2">
               {selectedServices.map((service) => (
                 <div key={service} className="flex items-center gap-2">
-                  <span className="w-20 text-sm font-medium">{service.toUpperCase()}:</span>
+                  <span className="w-20 text-sm font-medium">
+                    {service.toUpperCase()}:
+                  </span>
                   <input
                     type="number"
                     step="1"
@@ -476,7 +458,9 @@ try {
                     onBlur={(e) =>
                       setServicePrices((prev) => ({
                         ...prev,
-                        [service]: parseFloat(e.target.value || "0").toFixed(2),
+                        [service]: parseFloat(e.target.value || "0").toFixed(
+                          2
+                        ),
                       }))
                     }
                     placeholder="Price"
@@ -485,9 +469,11 @@ try {
                 </div>
               ))}
             </div>
-            
+
             <div>
-              <label className="block text-sm font-medium mb-1">Total Revenue (₹)</label>
+              <label className="block text-sm font-medium mb-1">
+                Total Revenue (₹)
+              </label>
               <input
                 type="number"
                 value={total}
@@ -500,96 +486,119 @@ try {
         </div>
 
         {/* Shareholders Section */}
-{(() => {
-  let shareholders = [];
-  try {
-    shareholders = JSON.parse(client.shareholders);
-  } catch (e) {
-    console.error("Invalid JSON in client.shareholders", e);
-  }
+        {(() => {
+          let shareholders = [];
+          try {
+            shareholders = JSON.parse(client.shareholders);
+          } catch (e) {
+            console.error("Invalid JSON in client.shareholders", e);
+          }
 
-  return Array.isArray(shareholders) && shareholders.length > 0 ? (
-<div className="bg-white shadow-md rounded-2xl p-6 border border-gray-200">
-  <h2 className="text-xl font-bold text-sky-900 mb-4 border-b pb-2">
-    Incorporation Details
-  </h2>
+          return Array.isArray(shareholders) && shareholders.length > 0 ? (
+            <div className="bg-white shadow-md rounded-2xl p-6 border border-gray-200">
+              <h2 className="text-xl font-bold text-sky-900 mb-4 border-b pb-2">
+                Incorporation Details
+              </h2>
+              <div className="mb-4">
+                <h3 className="text-md font-medium text-gray-700 mb-2">
+                  Shareholders
+                </h3>
+                <ul className="space-y-2">
+                  {shareholders.map((s, idx) => (
+                    <li
+                      key={idx}
+                      className="flex justify-between items-center px-4 py-2 bg-[#e6dcf4] rounded-lg text-[#5c2dbf] shadow-sm"
+                    >
+                      <span className="font-semibold">{s.name}</span>
+                      <span className="text-sm font-medium">{s.percent}%</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-  <div className="mb-4">
-    <h3 className="text-md font-medium text-gray-700 mb-2">Shareholders</h3>
-    <ul className="space-y-2">
-      {shareholders.map((s, idx) => (
-        <li
-          key={idx}
-          className="flex justify-between items-center px-4 py-2 bg-[#e6dcf4] rounded-lg text-[#5c2dbf] shadow-sm"
-        >
-          <span className="font-semibold">{s.name}</span>
-          <span className="text-sm font-medium">{s.percent}%</span>
-        </li>
-      ))}
-    </ul>
-  </div>
+              {client.roc && (
+                <div className="mt-4">
+                  <h3 className="text-md font-medium text-gray-700 mb-1">
+                    ROC Number
+                  </h3>
+                  <p className="text-sm text-gray-800 bg-gray-100 rounded-lg px-3 py-2 inline-block">
+                    {client.roc}
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : null;
+        })()}
 
-  {client.roc && (
-    <div className="mt-4">
-      <h3 className="text-md font-medium text-gray-700 mb-1">ROC Number</h3>
-      <p className="text-sm text-gray-800 bg-gray-100 rounded-lg px-3 py-2 inline-block">
-        {client.roc}
-      </p>
-    </div>
-  )}
-</div>
-  ) : null;
-})()}
-
-        {/* Document Upload Section */}
         <div className="mt-6">
           <h3 className="text-lg font-medium mb-4">Client Documents</h3>
 
-          {/* All Client Files */}
+          {/* This part maps over the clientFiles state to display Cloudinary files */}
           <div className="mb-8">
             <h4 className="text-md font-medium mb-3">All Documents</h4>
             {clientFiles.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {clientFiles.map((file, index) => (
-                  <div
-                    key={index}
-                    className="border rounded-lg p-3 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex flex-col items-center">
-                      {file.type.match(/(jpg|jpeg|png|gif)$/) ? (
-                        <img
-                          src={file.url}
-                          alt={file.name}
-                          className="w-full h-32 object-contain mb-2 cursor-pointer"
-                          onClick={() => setModalImage(file.url)}
-                        />
-                      ) : (
-                        <div className="w-full h-32 flex items-center justify-center text-4xl bg-gray-100 mb-2">
-                          {getFileIcon(file.type)}
-                        </div>
-                      )}
-                      <span className="text-sm font-medium truncate w-full text-center">
-                        {file.name}
-                      </span>
-                      <a
-                        href={file.url}
-                        download
-                        className="text-xs text-[#7b49e7] hover:underline mt-1"
-                      >
-                        Download
-                      </a>
-                    </div>
-                  </div>
-                ))}
+  <div
+    key={index}
+    className="relative border rounded-lg p-3 hover:shadow-md transition-shadow"
+  >
+    <button
+    type="button"
+      onClick={async () => {
+        try {
+          console.log(file.url);
+          await axios.post("https://crm-server-three.vercel.app/delete_file_by_url", { file_url: file.url });
+          console.log(file.url);
+          // Optionally refresh list
+          setClientFiles(prev => prev.filter(f => f.url !== file.url));
+        } catch (error) {
+          console.error("Error deleting file:", error);
+        }
+      }}
+      className="absolute top-2 right-2 p-1 rounded-full bg-red-100 hover:bg-red-200"
+    >
+      <Trash2 size={16} className="text-red-500" />
+    </button>
+
+    <div className="flex flex-col items-center">
+      {file.type.match(/(jpg|jpeg|png|gif)$/) ? (
+        <img
+          src={file.url}
+          alt={file.name}
+          className="w-full h-32 object-contain mb-2 cursor-pointer"
+          onClick={() => setModalImage(file.url)}
+        />
+      ) : (
+        <div className="w-full h-32 flex items-center justify-center text-4xl bg-gray-100 mb-2">
+          {getFileIcon(file.type)}
+        </div>
+      )}
+<a
+  href={file.url.replace("/upload/", "/upload/fl_attachment:WE-UploadedFile/")}
+  className="text-xs text-[#7b49e7] hover:underline mt-1"
+>
+  Download
+</a>
+
+
+
+    </div>
+  </div>
+))}
+
               </div>
             ) : (
-              <p className="text-gray-500">No documents found for this client.</p>
+              <p className="text-gray-500">
+                No documents found for this client.
+              </p>
             )}
           </div>
-
           {/* Upload New Files */}
           <div>
-            <h4 className="text-md font-medium mb-3">Upload Additional Documents</h4>
+            <h4 className="text-md font-medium mb-3">
+              Upload Additional Documents
+            </h4>
             <input
               type="file"
               multiple
@@ -611,56 +620,84 @@ try {
         </div>
 
         {/* Client History */}
- {history.length > 0 && (
-  <div className="mt-8">
-    <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-      <span className="inline-block w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-      Client History
-    </h3>
-    <div className="space-y-4">
-      {history.map((entry, idx) => (
-        <div
-          key={idx}
-          className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 transition-all hover:shadow-md"
-        >
-          <div className="flex justify-between items-center mb-2">
-            <h4 className="text-md font-medium text-blue-600 capitalize">
-              {entry.service_type} Service
-            </h4>
-            <span className="text-xs text-gray-400">
-              Created: {entry.created_at.slice(0, 10)}
-            </span>
-          </div>
-
-          <div className="text-sm text-gray-700 grid gap-2">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold w-28 text-gray-800">Last update on:</span>
-              <span className="text-gray-600">
-  {entry.last_contact ? entry.last_contact.slice(0, 10) : "N/A"}
-</span>
+        {history.length > 0 && (
+          <div className="mt-8">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <span className="inline-block w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+              Client History
+            </h3>
+            <div className="space-y-4">
+              {history.map((entry, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 transition-all hover:shadow-md"
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="text-md font-medium text-blue-600 capitalize">
+                      {entry.service_type} Service
+                    </h4>
+                    <span className="text-xs text-gray-400">
+                      Created: {entry.created_at.slice(0, 10)}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-700 grid gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold w-28 text-gray-800">
+                        Last update on:
+                      </span>
+                      <span className="text-gray-600">
+                        {entry.last_contact
+                          ? entry.last_contact.slice(0, 10)
+                          : "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold w-28 text-gray-800">
+                        Staff By:
+                      </span>
+                      <span className="text-gray-600">{entry.assignedTo}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-
-            <div className="flex items-center gap-2">
-              <span className="font-semibold w-28 text-gray-800">Staff By:</span>
-              <span className="text-gray-600">{entry.assignedTo}</span>
-            </div>
           </div>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
-
+        )}
 
         {/* Submit Button */}
-        <div className="pt-6">
-        { !isFillingStaff && <button
-            type="submit"
-            className="hover:bg-[#5c2dbf] bg-[#7b49e7] text-white font-semibold py-2 px-6 rounded-lg transition-colors"
-          >
-            Update Client
-          </button>}
-        </div>
+       <div className="pt-6">
+  {!isFillingStaff && (
+    <button
+      type="submit"
+      className="w-full flex justify-center items-center gap-2 hover:bg-[#5c2dbf] bg-[#7b49e7] text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+      disabled={loading}
+    >
+      {loading && (
+        <svg
+          className="animate-spin h-5 w-5 text-white"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          ></circle>
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          ></path>
+        </svg>
+      )}
+      {loading ? "Updating..." : "Update Client"}
+    </button>
+  )}
+</div>
       </form>
 
       {/* Image Preview Modal */}

@@ -39,10 +39,10 @@ export const Analytics = () => {
     async function fetchData() {
       try {
         const [service, revenue, dashrevenue, teamperformance] = await Promise.all([
-          axios.get("http://localhost:5000/get_analytics"),
-          axios.get("http://localhost:5000/get_revenue_analytics"),
-          axios.get("http://localhost:5000/get_dashboard_analytics"),
-          axios.get("http://localhost:5000/team_performance"),
+          axios.get("https://crm-server-three.vercel.app/get_analytics"),
+          axios.get("https://crm-server-three.vercel.app/get_revenue_analytics"),
+          axios.get("https://crm-server-three.vercel.app/get_dashboard_analytics"),
+          axios.get("https://crm-server-three.vercel.app/team_performance"),
         ]);
 
         const dash = dashrevenue.data;
@@ -174,7 +174,7 @@ export const Analytics = () => {
     if (!startDate || !endDate) return;
 
     try {
-      const res = await axios.get("http://localhost:5000/report_metrics", {
+      const res = await axios.get("https://crm-server-three.vercel.app/report_metrics", {
         params: {
           startDate: startDate.toISOString().split("T")[0],
           endDate: endDate.toISOString().split("T")[0],

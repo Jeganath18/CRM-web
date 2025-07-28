@@ -11,7 +11,7 @@ export const UpcomingDeadlines = () => {
     const getDeadline = async () => {
       try {
         const res = await axios.get(
-          "http://localhost:5000/get_upcoming_deadlines"
+          "https://crm-server-three.vercel.app/get_upcoming_deadlines"
         );
         setDeadlines(res.data);
         console.log(res.data);

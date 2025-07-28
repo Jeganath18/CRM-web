@@ -80,18 +80,34 @@ export const ClientManagement = ({ userName, userRole }: ClientProps) => {
   },
 ]);
 
-  const getClients = async () => {
+ const getClients = async () => {
   try {
     setLoading(true);
     setError(null);
 
-    const res =
-      userRole === "account_manager"
-        ? await axios.get(`http://localhost:5000/clients/${userName}`)
-        : await axios.get("http://localhost:5000/clients");
+    let res;
 
-    // Safely parse services for each client
-    const processedClients = res.data.map((client: any) => {
+    if (userRole === "account_manager") {
+      res = await axios.get(`https://crm-server-three.vercel.app/clients/${userName}`);
+    } else {
+      res = await axios.get("https://crm-server-three.vercel.app/clients");
+    }
+
+    let clients = res.data;
+
+    // ✅ If filling_staff, filter using assigned clients from localStorage
+    if (userRole === "filling_staff") {
+      const assignedClients = JSON.parse(
+        localStorage.getItem("assignedClients") || "[]"
+      );
+
+      clients = clients.filter((client) =>
+        assignedClients.includes(client.company_name)
+      );
+    }
+
+    // ✅ Safely parse services for each client
+    const processedClients = clients.map((client: any) => {
       let services = [];
 
       try {
@@ -105,12 +121,11 @@ export const ClientManagement = ({ userName, userRole }: ClientProps) => {
 
       return {
         ...client,
-          services:
-    typeof client.services === "string"
-      ? JSON.parse(client.services)
-      : client.services || [],
+        services,
       };
     });
+
+    setClients(processedClients);
 
     setClients(processedClients);
 
@@ -158,6 +173,7 @@ export const ClientManagement = ({ userName, userRole }: ClientProps) => {
         color: "purple",
       },
     ]);
+    console.log(totalRevenue)
   } catch (err) {
     console.error("Error fetching clients:", err);
     setError("Failed to fetch clients. Please try again.");
@@ -202,7 +218,7 @@ export const ClientManagement = ({ userName, userRole }: ClientProps) => {
     setDeleting(true);
     try {
       await axios.delete(
-        `http://localhost:5000/delete_client/${deleteClientId}`
+        `https://crm-server-three.vercel.app/delete_clients/${deleteClientId}`
       );
       setClients((prev) =>
         prev.filter((client) => client.id !== deleteClientId)

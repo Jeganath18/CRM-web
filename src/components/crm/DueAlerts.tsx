@@ -22,7 +22,7 @@ const DueAlerts: React.FC<Props> = () => {
     useEffect( ()=>{
         const getdues = async() =>{
         try{
-            const res=await axios.get("http://localhost:5000/get_dues")
+            const res=await axios.get("https://crm-server-three.vercel.app/get_dues")
 
             setalerts(res.data);
         }

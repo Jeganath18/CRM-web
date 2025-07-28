@@ -14,13 +14,12 @@ export const StatsCard = ({ title, value, index }: StatsCardProps) => {
       case "active clients":
         return (
           <svg
-            className="h-full w-full"
+            className="h-full w-full fill-[#f0eafd]"
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
           >
             {/* Base: Person Icon */}
             <path
-              fill="white"
               stroke="#5c2dbf"
               strokeWidth="1.5"
               strokeLinecap="round"
@@ -54,8 +53,9 @@ export const StatsCard = ({ title, value, index }: StatsCardProps) => {
       case "pending tasks":
         return (
           <svg
-            className="h-full w-full"
+            className="h-full w-full fill-[#f0eafd]"
             viewBox="0 0 16 16"
+            fill="fill-[#f0eafd]"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -92,7 +92,7 @@ export const StatsCard = ({ title, value, index }: StatsCardProps) => {
       case "total clients":
         return (
           <svg
-            className="h-full w-full fill-white stroke-[#5c2dbf]"
+            className="h-full w-full fill-[#f0eafd] stroke-[#5c2dbf]"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -163,15 +163,15 @@ export const StatsCard = ({ title, value, index }: StatsCardProps) => {
   return (
     <Card
       className={cn(
-        "transition-all duration-300 hover:shadow-xl hover:scale-105 animate-fade-in",
+        "transition-all duration-300 hover:shadow-xl hover:scale-105 animate-fade-in bg-[#f0eafd]",
         `animation-delay-${index * 100}`
       )}
     >
       <CardContent className="grid place-items-center">
-        <div className="w-fit rounded-[25px] bg-white p-6 text-center mt-2">
+        <div className="w-fit rounded-[25px] p-6 text-center mt-2">
           <div className="h-8 w-12 mx-auto mb-4">{renderIcon()}</div>
-          <h2 className="text-4xl font-bold text-gray-900">{value}</h2>
-          <p className="mt-2 text-base font-medium text-[#8d74b3]">{title}</p>
+          <h2 className="text-4xl font-bold text-[#5f4c8e]">{value}</h2>
+          <p className="mt-2 text-base font-medium text-[#5f4c8e]">{title}</p>
         </div>
       </CardContent>
     </Card>

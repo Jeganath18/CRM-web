@@ -1,14 +1,20 @@
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react"; // Import icons for the toggle
 import Logo from "../../assets/Wealth_Empires-removebg-preview.png";
 
 const Login = ({ onLogin }: { onLogin: (role: string, name: string) => void }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, seterror] = useState("");
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // State for password visibility
 
-  const handleLogin = async () => {
+  // This function now handles the form's submit event
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); // Prevent the default form submission behavior
+    setError(""); // Clear previous errors
+
     try {
-      const response = await fetch("http://localhost:5000/login", {
+      const response = await fetch("https://crm-server-three.vercel.app/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -23,11 +29,11 @@ const Login = ({ onLogin }: { onLogin: (role: string, name: string) => void }) =
         localStorage.setItem("userName", data.user.name);
         onLogin(data.user.role, data.user.name);
       } else {
-        seterror("Invalid email or password");
+        setError(data.message || "Invalid email or password");
       }
     } catch (err) {
       console.error("Login error:", err);
-      seterror(`Login error: ${err}`);
+      setError("An unexpected error occurred. Please try again.");
     }
   };
 
@@ -44,7 +50,8 @@ const Login = ({ onLogin }: { onLogin: (role: string, name: string) => void }) =
 
           <div className="w-full md:w-1/2 max-w-md bg-white shadow-md rounded-xl p-8">
             <h2 className="text-xl font-semibold text-center mb-6">SIGN IN</h2>
-            <form className="space-y-4" onSubmit={() => event.preventDefault()}>
+            {/* The onSubmit event is now handled by the form */}
+            <form className="space-y-4" onSubmit={handleLogin}>
               <div>
                 <label className="block mb-1 font-medium text-sm text-gray-700">Email ID</label>
                 <input
@@ -55,25 +62,41 @@ const Login = ({ onLogin }: { onLogin: (role: string, name: string) => void }) =
                   className="w-full border border-gray-300 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
               </div>
+
               <div>
                 <label className="block mb-1 font-medium text-sm text-gray-700">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full border border-gray-300 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"} // Dynamically set the input type
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    // Add padding-right to make space for the icon
+                    className="w-full border border-gray-300 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 pr-10"
+                  />
+                  <button
+                    type="button" // Important: set type to "button" to prevent form submission
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" /> 
+                    ) : (
+                      <Eye className="h-5 w-5" /> 
+                    )}
+                  </button>
+                </div>
               </div>
+
               <button
                 type="submit"
                 className="w-full text-white py-2 rounded-md hover:bg-[#5c2dbf] bg-[#7b49e7] transition"
-                onClick={handleLogin}
               >
                 Login
               </button>
               {error && (
-                <div className="bg-red-100 text-red-700 p-2 mb-4 rounded text-sm">
+                <div className="bg-red-100 text-red-700 p-3 rounded text-sm text-center">
                   {error}
                 </div>
               )}
@@ -82,9 +105,8 @@ const Login = ({ onLogin }: { onLogin: (role: string, name: string) => void }) =
         </div>
       </div>
 
-      {/* 👇 Footer centered always */}
       <div className="text-center text-sm text-gray-500 py-4">
-        &copy; Wealth Empires
+        &copy; {new Date().getFullYear()} Wealth Empires
       </div>
     </div>
   );

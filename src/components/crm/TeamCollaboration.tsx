@@ -34,7 +34,7 @@ export const TeamCollaboration = () => {
 
   const fetchTeams = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/users/team-groups");
+      const res = await axios.get("https://crm-server-three.vercel.app/users/team-groups");
       setTeams(res.data);
       console.log(res.data);
     } catch (err) {
@@ -70,7 +70,7 @@ export const TeamCollaboration = () => {
     try {
       if (!edituserId) return;
 
-      await axios.delete(`http://localhost:5000/delete_user/${edituserId}`);
+      await axios.delete(`https://crm-server-three.vercel.app/delete_user/${edituserId}`);
 
       // Remove user from team list
       setTeams((prev) =>
@@ -116,7 +116,7 @@ export const TeamCollaboration = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="h-5 w-5" />
-                    {team.name}
+                    {team.name==="Filling Staffs" ? "Filing Staffs":team.name}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -137,15 +137,9 @@ export const TeamCollaboration = () => {
                                     .join("")}
                                 </AvatarFallback>
                               </Avatar>
-                              <div
-                                className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${getStatusColor(
-                                  member.status || "offline"
-                                )}`}
-                              />
                             </div>
                             <div>
                               <p className="text-sm font-medium">{member.name}</p>
-                              <p className="text-xs text-gray-500">{member.role}</p>
                             </div>
                           </div>
                     {isadmin && 
@@ -217,7 +211,7 @@ export const TeamCollaboration = () => {
       <Button
       onClick={async () => {
         try{
-          await axios.post(`http://localhost:5000/reset-password/${edituser.id}`)
+          await axios.post(`https://crm-server-three.vercel.app/reset-password/${edituser.id}`)
           setShoweditDialog(false);
         }
         catch(e){
@@ -231,7 +225,7 @@ export const TeamCollaboration = () => {
         className="w-full mt-4"
         onClick={async () => {
           try {
-            await axios.patch(`http://localhost:5000/edit_user/${edituser.id}`, {
+            await axios.patch(`https://crm-server-three.vercel.app/edit_user/${edituser.id}`, {
               name: edituser.name,
               email: edituser.email,
               role: edituser.role,
