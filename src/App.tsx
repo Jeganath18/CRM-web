@@ -53,6 +53,7 @@ const App = () => {
       if (name) setUserName(name);
       setLoading(false);
     }
+    setLoading(false);
   }, []);
 
   const handleLogin = (role: string, name: string) => {
