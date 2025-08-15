@@ -77,7 +77,6 @@ interface LeadsState {
 
 interface FormErrors {
   phone: string;
-  // can add more fields here later
 }
 
 // --- COMPONENT ---
@@ -99,6 +98,7 @@ export const LeadManagement = () => {
   const [dropleadId, setDropleadId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [dropping, setDropping] = useState(false);
   const [emailError, setEmailError] = useState("");
 
   const [formData, setFormData] = useState({
@@ -108,6 +108,7 @@ export const LeadManagement = () => {
     phone: "",
     services: [] as string[],
     assignedTo: "",
+    stage_status:""
   });
 
   const [errors, setErrors] = useState<FormErrors>({
@@ -135,7 +136,6 @@ export const LeadManagement = () => {
         contact: lead.owner_name,
         email: lead.email,
         phone: lead.phone,
-        // FIX: Safely parse services JSON, defaulting to an empty array
         services: JSON.parse(lead.services || "[]"),
         lastContact: lead.last_contact,
         assignedTo: lead.assigned_to || "",
@@ -155,7 +155,6 @@ export const LeadManagement = () => {
         }
       });
 
-      // Prioritize user-assigned leads at top for each stage
       if (userRole === "sales_staff") {
         Object.keys(grouped).forEach((stage) => {
           const leadsArray = grouped[stage as keyof LeadsState];
@@ -177,10 +176,8 @@ export const LeadManagement = () => {
   }, []);
 
   // --- FORM & MODAL HANDLERS ---
-
-  // FIX: Added a dedicated handler with validation for the phone input
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newPhone = e.target.value.replace(/\D/g, ""); // Allow only digits
+    const newPhone = e.target.value.replace(/\D/g, "");
     if (newPhone.length <= 10) {
       setFormData({ ...formData, phone: newPhone });
       if (newPhone.length > 0 && newPhone.length < 10) {
@@ -189,7 +186,7 @@ export const LeadManagement = () => {
           phone: "Phone number must be 10 digits.",
         }));
       } else {
-        setErrors((prev) => ({ ...prev, phone: "" })); // Clear error if valid or empty
+        setErrors((prev) => ({ ...prev, phone: "" }));
       }
     }
   };
@@ -211,14 +208,20 @@ export const LeadManagement = () => {
       phone: "",
       services: [],
       assignedTo: "",
+      stage_status:"",
     });
     setErrors({ phone: "" });
+    setEmailError("");
     setEditId(null);
     setShowAddModal(false);
   };
 
+  const handleOpenAddModal = () => {
+    resetFormAndCloseModal();
+    setShowAddModal(true);
+  };
+
   const handleFormSubmit = async () => {
-    // FIX: Added validation check before submitting the form
     if (formData.phone && formData.phone.length !== 10) {
       setErrors((prev) => ({
         ...prev,
@@ -228,26 +231,37 @@ export const LeadManagement = () => {
       return;
     }
 
-    const payload = {
+    const toastId = toast.loading(
+      editId ? "Updating lead..." : "Adding lead..."
+    );
+
+    const basePayload = {
       company_name: formData.company,
       owner_name: formData.owner,
       email: formData.email,
       phone: formData.phone,
       services: formData.services,
       last_contact: new Date().toISOString().slice(0, 10),
-      assigned_to: formData.assignedTo,
-      stage_status: "new",
+      assigned_to: "Dummy",
+      stage_status:formData.stage_status
     };
 
-    const toastId = toast.loading(
-      editId ? "Updating lead..." : "Adding lead..."
-    );
     try {
+      console.log("edit id",editId);
       if (editId !== null) {
-        await axios.put(`https://crm-server-three.vercel.app/edit_lead/${editId}`, payload);
+        await axios.put(
+          `https://crm-server-three.vercel.app/edit_lead/${editId}`,
+          basePayload
+        );
+        console.log("Here Am I"+basePayload);
         toast.success("Lead updated successfully!", { id: toastId });
       } else {
-        await axios.post("https://crm-server-three.vercel.app/add-lead", payload);
+        const addPayload = {
+          ...basePayload,
+          stage_status: "new",
+        };
+        console.log(addPayload);
+        await axios.post("https://crm-server-three.vercel.app/add-lead", addPayload);
         toast.success("Lead added successfully!", { id: toastId });
       }
       resetFormAndCloseModal();
@@ -266,8 +280,10 @@ export const LeadManagement = () => {
       phone: lead.phone,
       services: lead.services,
       assignedTo: lead.assignedTo || "",
+      stage_status:lead.stage_status
     });
-    setErrors({ phone: "" }); // Clear previous errors
+    setErrors({ phone: "" });
+    setEmailError("");
     setEditId(lead.id);
     setShowAddModal(true);
     setDropdownOpen(null);
@@ -292,13 +308,13 @@ export const LeadManagement = () => {
             company_name: row.Company || "",
             owner_name: row.Owner || "",
             email: row.Email || "",
-            phone: String(row.Phone || ""), // Ensure phone is a string
+            phone: String(row.Phone || ""),
             services: row.Services
               ? row.Services.split(",").map((s) => s.trim())
               : [],
             last_contact:
               row.LastContact || new Date().toISOString().slice(0, 10),
-            assigned_to: row.AssignedTo || "",
+            assigned_to: row.AssignedTo || null, // Convert "" to null
             stage_status: "new",
           };
           await axios.post("https://crm-server-three.vercel.app/add-lead", payload);
@@ -311,55 +327,65 @@ export const LeadManagement = () => {
       }
     };
     reader.readAsArrayBuffer(file);
-    e.target.value = ""; // Reset file input
+    e.target.value = "";
   };
 
   // --- LEAD ACTION HANDLERS ---
   const moveToNextStage = async (leadId: number, currentStage: string) => {
+    console.log(currentStage);  
     const nextStageIndex = stageOrder.indexOf(currentStage) + 1;
-    if (nextStageIndex < stageOrder.length) {
-      const nextStage = stageOrder[nextStageIndex];
-      // FIX: Cleaned up date formatting
-      const updatedDate = new Date().toISOString().slice(0, 10);
+    if (
+      nextStageIndex >= stageOrder.length ||
+      currentStage === "converted" ||
+      currentStage === "dropped"
+    ) {
+      return;
+    }
 
-      try {
-        await axios.patch(`https://crm-server-three.vercel.app/edit_lead/${leadId}`, {
-          stage_status: nextStage,
-          last_update: updatedDate,
-        });
+    const nextStage = stageOrder[nextStageIndex];
+    console.log(nextStage);
+    const updatedDate = new Date().toISOString().slice(0, 10);
+    const originalLeadsState = leads;
 
-        // Update state locally for immediate feedback
-        setLeads((prev) => {
-          const updatedLeads = { ...prev };
-          const currentStageKey = currentStage as keyof LeadsState;
-          const nextStageKey = nextStage as keyof LeadsState;
-          const leadToMove = updatedLeads[currentStageKey]?.find(
-            (lead) => lead.id === leadId
-          );
+    // Optimistic UI Update
+    setLeads((prev) => {
+      const updatedLeads = { ...prev };
+      const currentStageKey = currentStage as keyof LeadsState;
+      const nextStageKey = nextStage as keyof LeadsState;
+      const leadToMove = updatedLeads[currentStageKey]?.find(
+        (lead) => lead.id === leadId
+      );
 
-          if (!leadToMove) return prev;
+      if (!leadToMove) return prev;
 
-          const updatedLead = {
-            ...leadToMove,
-            stage_status: nextStage,
-            lastContact: updatedDate,
-          };
-          return {
-            ...updatedLeads,
-            [currentStageKey]: updatedLeads[currentStageKey].filter(
-              (lead) => lead.id !== leadId
-            ),
-            [nextStageKey]: [
-              updatedLead,
-              ...(updatedLeads[nextStageKey] || []),
-            ],
-          };
-        });
-        toast.success(`Lead moved to ${nextStage}.`);
-      } catch (err) {
-        console.error("Error moving lead:", err);
-        toast.error("Failed to move lead.");
-      }
+      const updatedLead = {
+        ...leadToMove,
+        stage_status: nextStage,
+        lastContact: updatedDate,
+      };
+
+      updatedLeads[currentStageKey] = updatedLeads[currentStageKey].filter(
+        (lead) => lead.id !== leadId
+      );
+      updatedLeads[nextStageKey] = [
+        updatedLead,
+        ...(updatedLeads[nextStageKey] || []),
+      ];
+
+      return updatedLeads;
+    });
+
+    // API Call
+    try {
+      await axios.patch(`https://crm-server-three.vercel.app/edit_lead/${leadId}`, {
+        stage_status: nextStage,
+        last_contact: updatedDate,
+      });
+      toast.success(`Lead moved to ${nextStage}.`);
+    } catch (err) {
+      console.error("Error moving lead:", err);
+      toast.error("Failed to move lead. Reverting change.");
+      setLeads(originalLeadsState); // Rollback on failure
     }
   };
 
@@ -381,12 +407,13 @@ export const LeadManagement = () => {
   };
 
   function validateEmail(email: string) {
-  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return re.test(email);
-}
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  }
 
   const droplead = async () => {
     if (!dropleadId) return;
+    setDropping(true);
     try {
       await axios.patch(`https://crm-server-three.vercel.app/drop_lead/${dropleadId}`);
       toast.success("Lead dropped successfully.");
@@ -395,9 +422,10 @@ export const LeadManagement = () => {
       setDropdownOpen(null);
       await getClients();
     } catch (error) {
-      // FIX: Corrected error message
       toast.error("Failed to drop lead.");
       console.error("Error dropping lead:", error);
+    } finally {
+      setDropping(false);
     }
   };
 
@@ -414,6 +442,7 @@ export const LeadManagement = () => {
   // --- HELPERS & UTILS ---
   const toggleDropdown = (id: number) =>
     setDropdownOpen(dropdownOpen === id ? null : id);
+
   const isFollowUpDue = (lastContact: string) => {
     const lastDate = new Date(lastContact);
     const today = new Date();
@@ -447,7 +476,7 @@ export const LeadManagement = () => {
         </h1>
         <div className="flex gap-2 sm:gap-4">
           <Button
-            onClick={() => setShowAddModal(true)}
+            onClick={handleOpenAddModal}
             className="bg-[#7b49e7] hover:bg-[#5c2dbf]"
           >
             <Plus className="h-4 w-4 mr-2" /> Add Lead
@@ -472,37 +501,30 @@ export const LeadManagement = () => {
           {
             label: "New Leads",
             count: stageStats.new,
-            color: "#7b49e7",
             icon: <UserPlus className="h-8 w-8 text-[#5f4c8e]" />,
           },
           {
             label: "Contacted",
             count: stageStats.contact,
-            color: "#7b49e7",
             icon: <PhoneCall className="h-8 w-8 text-[#5f4c8e]" />,
           },
           {
             label: "Converted",
             count: stageStats.converted,
-            color: "#7b49e7",
             icon: <CheckCircle2 className="h-8 w-8 text-[#5f4c8e]" />,
           },
           {
             label: "Dropped",
             count: stageStats.dropped,
-            color: "#7b49e7",
             icon: <Ban className="h-8 w-8 text-[#5f4c8e]" />,
           },
-        ].map(({ label, count, color, icon }) => (
+        ].map(({ label, count, icon }) => (
           <Card key={label} className="animate-scale-in bg-[#f0eafd]">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">{label}</p>
-                  {/* FIX: Used inline style for dynamic color to prevent Tailwind class purging */}
-                  <p className="text-3xl font-bold text-[#5f4c8e]">
-                    {count}
-                  </p>
+                  <p className="text-3xl font-bold text-[#5f4c8e]">{count}</p>
                 </div>
                 {icon}
               </div>
@@ -525,7 +547,6 @@ export const LeadManagement = () => {
         </CardContent>
       </Card>
 
-      {/* --- ADD/EDIT MODAL --- */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -554,23 +575,22 @@ export const LeadManagement = () => {
               }
             />
             <Input
-  type="email"
-  placeholder="Email"
-  value={formData.email}
-  onChange={(e) => {
-    const email = e.target.value;
-    setFormData({ ...formData, email });
-
-    if (!validateEmail(email)) {
-      setEmailError("Please enter a valid email address");
-    } else {
-      setEmailError("");
-    }
-  }}
-/>
-{emailError && (
-  <p className="text-red-500 text-sm mt-1">{emailError}</p>
-)}
+              type="email"
+              placeholder="Email"
+              value={formData.email}
+              onChange={(e) => {
+                const email = e.target.value;
+                setFormData({ ...formData, email });
+                if (!validateEmail(email)) {
+                  setEmailError("Please enter a valid email address");
+                } else {
+                  setEmailError("");
+                }
+              }}
+            />
+            {emailError && (
+              <p className="text-red-500 text-sm mt-1">{emailError}</p>
+            )}
             <div>
               <Input
                 type="tel"
@@ -621,7 +641,6 @@ export const LeadManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* --- LEADS TABS --- */}
       <Tabs defaultValue="new" className="w-full">
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
           {Object.keys(leads).map((stage) => (
@@ -738,8 +757,6 @@ export const LeadManagement = () => {
                       </div>
                     )}
 
-
-
                     <div className="border-t pt-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                       <div className="flex items-center space-x-2 text-sm text-gray-600">
                         <Calendar className="h-4 w-4" />
@@ -769,8 +786,11 @@ export const LeadManagement = () => {
                           lead.stage_status !== "converted" && (
                             <Button
                               size="sm"
-                              onClick={() =>
+                              onClick={() =>{
+                                console.log(lead);
                                 moveToNextStage(lead.id, lead.stage_status)
+                                console.log(lead);
+                              }
                               }
                               className="flex-1"
                             >
@@ -787,7 +807,6 @@ export const LeadManagement = () => {
         ))}
       </Tabs>
 
-      {/* --- CONFIRMATION MODALS --- */}
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
         <DialogContent>
           <DialogHeader>
@@ -800,7 +819,10 @@ export const LeadManagement = () => {
             undone.
           </DialogDescription>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteModal(false)}
+            >
               Cancel
             </Button>
             <Button
@@ -814,7 +836,6 @@ export const LeadManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* FIX: Replaced custom modal with the consistent Dialog component */}
       <Dialog open={showDropModal} onOpenChange={setShowDropModal}>
         <DialogContent>
           <DialogHeader>
@@ -827,8 +848,12 @@ export const LeadManagement = () => {
             <Button variant="outline" onClick={() => setShowDropModal(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={droplead}>
-              Drop Lead
+            <Button
+              variant="destructive"
+              onClick={droplead}
+              disabled={dropping}
+            >
+              {dropping ? "Dropping..." : "Drop Lead"}
             </Button>
           </DialogFooter>
         </DialogContent>

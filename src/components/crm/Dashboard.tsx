@@ -62,6 +62,7 @@ export const Dashboard = () => {
       try {
         const res = await axios.get("https://crm-server-three.vercel.app/dashboard_stats");
         const data = res.data;
+        console.log(data);
 
         setStats([
           {
@@ -87,7 +88,7 @@ export const Dashboard = () => {
           },
           {
             title: "Revenue",
-            value: `${formatIndianShortNumber(data.total_revenue)}`,
+            value: `${formatIndianShortNumber(data.total_revenuex)}`,
             change: "+15%",
             icon: TrendingUp,
             color: "purple",
