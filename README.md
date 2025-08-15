@@ -1,6 +1,6 @@
 # CRM-Web 🚀
 
-CRM-Web is a modern, fast, and responsive front-end client for our CRM system. It's built with the latest web technologies to provide a seamless user experience for managing customer relationships. This application is designed to interact with the [CRM-Server API](<your-server-repo-link-here>).
+CRM-Web is a modern, fast, and responsive front-end client for our CRM system. It's built with the latest web technologies to provide a seamless user experience for managing customer relationships. This application is designed to interact with the [CRM-Server API](https://github.com/Jeganath18/CRM-server).
 
 ***
 
@@ -32,4 +32,5 @@ This personal repository serves as a showcase and a trace of my individual work 
 * **HTTP Client**: [Axios](https://axios-http.com/)
 
 ***
+
 
